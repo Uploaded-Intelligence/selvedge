@@ -85,3 +85,8 @@ First preview: the browser runs ~375 epochs/s, so a viewer lands in the 12k-epoc
 
 ## E14 — finite-size effect
 Same physics, seed 5, 6000 epochs: 64² at reach 12 → living 0.012, clustered 0.05 (never really ignites); 96² → 0.157; 128² → 0.143. Origin of life needs enough *trials*: habitability is a property of physics × world size. Multiverse tiles sized to 96².
+
+## E15 — is it multi-species, or one genome in many bodies? (advisor challenge) · MULTI-SPECIES, one family
+Default physics, 256², 8000 epochs, 3 seeds (`lab/sweep.mjs`): species above 2% of copies, late-run mean = **8.3 / 8.4 / 8.9**; the top species changed **45 / 51 / 61 times** in 80 samples. In-page at epoch 12,100: three co-dominant loops (22/21/19%) + three at 4%. Inspector on a living cell (T .99, P 1.00) shows `,`-tissue with head-turns — same family the census reports.
+Honest caveat: they are variants of ONE family — multi-copy `,` loops differing in head-turns (`B1`, `L0`, `R0`) and length — not unrelated lineages. Diversity of a clade, not of kingdoms.
+Also seen in the multiverse (reach 12, no cosmic rays, 96²): diagonal X-shaped structures. Not yet investigated.
