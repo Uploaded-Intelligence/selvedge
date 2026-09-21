@@ -3,7 +3,7 @@
 
 ## What exists when this has won?
 1. `sim/lens.js` — a substrate-agnostic "Theseus lens" (turnover × persistence-of-form) that reads Conway's Life correctly.
-2. `sim/core.js` — a world that is ONE torus of bytes, no tapes or organisms given, where self-copying code ignites from random bytes and a multi-body ecology follows (not mud, not monoculture).
+2. `sim/core.js` — a world that is ONE torus of bytes, no tapes or organisms given, where self-copying code ignites from random bytes and a multi-species ecology follows (not mud, not monoculture) — species = the loop a spark actually executed.
 3. `index.html` (published artifact) — that world running live under the lens, with a census of the loops sparks actually ran, click-to-disassemble, tools to poke it, and a multiverse lab of small worlds across physics.
 4. `NOTEBOOK.md` — every experiment incl. the failures.
 
@@ -17,7 +17,7 @@ For someone asking "what even is an agent?": shows selves *forming* where none w
 - Open the page: noise → green bodies with orange fronts within ~15 s; click a body and read its code; drag reach to 64 and watch it all become front.
 
 ## WIN =
-`WIN = ⟨lens validated on Life · code-life ignites unaided in a boundary-free byte torus and holds a multi-body ecology across seeds, with a dead control · a published page where I can watch it, read the living code, and turn the dial that kills it · verified by the lab scripts + opening the page⟩`
+`WIN = ⟨lens validated on Life · code-life ignites unaided in a boundary-free byte torus and holds a multi-species ecology across seeds, with a dead control · a published page where I can watch it, read the living code, and turn the dial that kills it · verified by the lab scripts + opening the page⟩`
 
 ## What is deliberately NOT part of winning?
 - Second-order selves (collectives with their own persistence) — north star, hunted, reported honestly either way.
