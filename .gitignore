@@ -1,0 +1,21 @@
+# secrets
+.env*
+!.env.example
+*.pem
+*.key
+# tool state
+.remember/
+.vercel/
+.DS_Store
+*.log
+# build / deps
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+__pycache__/
+.venv/

@@ -1,0 +1,596 @@
+<title>Selvedge</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  /* One deliberate visual world: a dark instrument. The luminous thing is the specimen, never the chrome. */
+  :root {
+    --ink: #0e1018; --panel: #151826; --line: #272b40; --bone: #e4dfd2; --mute: #8a8fa6;
+    --living: #86e6c4; --front: #ff7d45; --inert: #2c3150;
+    --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+    --body: "IBM Plex Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { background: var(--ink); color: var(--bone); }
+  body { font: 400 15px/1.55 var(--body); padding-inline: 16px; padding-block: 20px 56px; }
+  .wrap { max-width: 1240px; margin-inline: auto; display: flex; flex-direction: column; gap: 22px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; }
+  h1 { font: 700 clamp(30px, 5vw, 46px)/1 var(--display); letter-spacing: -0.02em; margin: 0; }
+  h1 span { color: var(--living); }
+  .thesis { color: var(--mute); max-width: 62ch; margin: 0; }
+  h2 { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute); margin: 0 0 10px; }
+  h3 { font: 700 19px/1.2 var(--display); margin: 0 0 6px; text-wrap: balance; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+  .tabs button { font: 500 13px var(--body); color: var(--mute); background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 12px; cursor: pointer; }
+  .tabs button[aria-selected="true"] { color: var(--bone); border-bottom-color: var(--living); }
+  button:focus-visible, input:focus-visible, label:focus-within { outline: 2px solid var(--living); outline-offset: 2px; }
+
+  .bench { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  @media (min-width: 940px) { .bench { grid-template-columns: minmax(0, 1fr) 372px; align-items: start; } }
+
+  .stage { position: relative; width: 100%; max-width: min(100%, 86vh); aspect-ratio: 1; background: #090a10; border: 1px solid var(--line); cursor: crosshair; touch-action: none; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+  #glow { image-rendering: auto; filter: blur(7px) saturate(1.3); mix-blend-mode: screen; opacity: .75; pointer-events: none; }
+  #over { pointer-events: none; }
+  .stagecol { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  #timeline { width: 100%; max-width: min(100%, 86vh); height: 64px; display: block; border: 1px solid var(--line); background: #090a10; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; font: 400 12px var(--mono); color: var(--mute); }
+  .legend i { display: inline-block; width: 9px; height: 9px; margin-right: 6px; }
+
+  .side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; font-variant-numeric: tabular-nums; }
+  .readout div { border-left: 2px solid var(--line); padding-left: 8px; }
+  .readout b { display: block; font: 500 19px/1.1 var(--mono); }
+  .readout small { font: 400 10.5px var(--mono); color: var(--mute); letter-spacing: .08em; text-transform: uppercase; }
+  .readout .lv { border-color: var(--living); } .readout .fr { border-color: var(--front); }
+
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .btn, .seg label { font: 500 12.5px var(--body); color: var(--bone); background: var(--panel); border: 1px solid var(--line); padding: 6px 10px; cursor: pointer; border-radius: 2px; }
+  .btn:hover, .seg label:hover { border-color: var(--mute); }
+  .seg { display: flex; flex-wrap: wrap; gap: 4px; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg input:checked + label { background: var(--bone); color: var(--ink); border-color: var(--bone); }
+  .dial { display: grid; grid-template-columns: 74px minmax(0, 1fr) 64px; gap: 10px; align-items: center; font: 400 12.5px var(--mono); }
+  .dial output { text-align: right; color: var(--living); }
+  input[type=range] { width: 100%; accent-color: var(--living); }
+  .hint { color: var(--mute); font-size: 12.5px; margin: 6px 0 0; }
+
+  #census { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font: 400 12px var(--mono); }
+  #census li { display: grid; grid-template-columns: 10px minmax(0, 1fr) 42px; gap: 8px; align-items: center; }
+  #census i { width: 10px; height: 10px; }
+  #census code { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #census span { text-align: right; color: var(--mute); }
+
+  #inspect { font: 400 12px/1.7 var(--mono); border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; min-height: 148px; overflow-x: auto; }
+  #inspect .v { font-weight: 500; }
+  .tok { display: inline-block; min-width: 1.9em; text-align: center; margin-right: 2px; border-radius: 2px; }
+  .t0 { color: #4b5070; } .tm0 { color: #6fc3b5; } .tm1 { color: #e0965a; } .ta { color: #a78bd6; } .tc { color: #f3ead0; background: #3a3526; } .tb { color: #f0707f; }
+
+  #verse { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; max-width: 900px; }
+  @media (max-width: 560px) { #verse { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .tile { background: var(--panel); border: 1px solid var(--line); padding: 0; color: inherit; cursor: pointer; text-align: left; font: 400 11.5px var(--mono); }
+  .tile:hover { border-color: var(--living); }
+  .tile canvas { display: block; width: 100%; aspect-ratio: 1; image-rendering: pixelated; background: #090a10; }
+  .tile p { margin: 0; padding: 6px 8px; color: var(--mute); display: flex; justify-content: space-between; gap: 6px; }
+  .tile p b { color: var(--living); font-weight: 500; }
+
+  .notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 26px 34px; border-top: 1px solid var(--line); padding-top: 26px; }
+  .notes p { margin: 0 0 10px; color: #c9c5ba; max-width: 60ch; }
+  .notes code { font: 400 12.5px var(--mono); color: var(--living); }
+  .notes .fail { color: var(--front); }
+  @media (prefers-reduced-motion: reduce) { #glow { display: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Selv<span>edge</span></h1>
+    <p class="thesis">One torus of random bytes. No organisms, no tapes, no fitness function. Sparks land and read whatever is under them as code. Below, an instrument for seeing where a <em>self</em> forms: matter turning over while form persists.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-world" aria-selected="true" aria-controls="p-world">One world</button>
+    <button role="tab" id="tab-verse" aria-selected="false" aria-controls="p-verse">Multiverse lab</button>
+  </div>
+
+  <section id="p-world" class="bench" role="tabpanel" aria-labelledby="tab-world">
+    <div class="stagecol">
+      <div class="stage" id="stage">
+        <canvas id="world" width="256" height="256"></canvas>
+        <canvas id="glow" width="256" height="256"></canvas>
+        <canvas id="over" width="768" height="768"></canvas>
+      </div>
+      <canvas id="timeline" width="900" height="64" aria-label="Share of the world that is living, front and inert over time"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--living)"></i>living — turnover, form persists</span>
+        <span><i style="background:var(--front)"></i>front — turnover, form lost</span>
+        <span><i style="background:var(--inert)"></i>inert — nothing is rewriting it</span>
+      </div>
+    </div>
+
+    <div class="side">
+      <div>
+        <h2>Theseus lens</h2>
+        <div class="readout">
+          <div><b id="r-epoch">0</b><small>epoch</small></div>
+          <div class="lv"><b id="r-liv">0%</b><small>living</small></div>
+          <div class="fr"><b id="r-fro">0%</b><small>front</small></div>
+          <div><b id="r-code">5%</b><small>is code</small></div>
+        </div>
+      </div>
+
+      <div>
+        <h2>Time &amp; view</h2>
+        <div class="row">
+          <button class="btn" id="b-run">Pause</button>
+          <div class="seg" role="radiogroup" aria-label="Speed">
+            <input type="radio" name="speed" id="sp1" value="2" checked><label for="sp1">slow</label>
+            <input type="radio" name="speed" id="sp2" value="9"><label for="sp2">fast</label>
+            <input type="radio" name="speed" id="sp3" value="24"><label for="sp3">max</label>
+          </div>
+          <div class="seg" role="radiogroup" aria-label="View">
+            <input type="radio" name="view" id="v1" value="both" checked><label for="v1">lens + code</label>
+            <input type="radio" name="view" id="v2" value="lens"><label for="v2">lens</label>
+            <input type="radio" name="view" id="v3" value="code"><label for="v3">code</label>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2>Physics</h2>
+        <div class="dial"><label for="reach">reach</label><input type="range" id="reach" min="8" max="128" step="2" value="12"><output id="o-reach">12 steps</output></div>
+        <div class="dial"><label for="mut">cosmic rays</label><input type="range" id="mut" min="0" max="6" step="1" value="2"><output id="o-mut">1/4096</output></div>
+        <div class="row" style="margin-top:8px"><button class="btn" id="b-bang">New big bang</button><span class="hint" id="seedlabel" style="margin:0">seed 1</span></div>
+        <p class="hint">Reach is how far one spark can work. Drag it live: near 10–14 living islands, fronts and inert ground coexist for good; by 24 the world slowly burns into front; past ~48 one spark rewrites a world-spanning line and nothing local can exist.</p>
+      </div>
+
+      <div>
+        <h2>Hand</h2>
+        <div class="seg" role="radiogroup" aria-label="Tool">
+          <input type="radio" name="tool" id="t1" value="inspect" checked><label for="t1">inspect</label>
+          <input type="radio" name="tool" id="t2" value="irradiate"><label for="t2">irradiate</label>
+          <input type="radio" name="tool" id="t3" value="sterilise"><label for="t3">sterilise</label>
+          <input type="radio" name="tool" id="t4" value="wall"><label for="t4">wall</label>
+          <input type="radio" name="tool" id="t5" value="seed"><label for="t5">panspermia</label>
+        </div>
+        <p class="hint" id="toolhint">Click anywhere to read the code living there.</p>
+      </div>
+
+      <div>
+        <h2>Who is copying — loops that sparks actually ran</h2>
+        <ul id="census"><li><i></i><code>nothing yet — random bytes rarely loop</code><span></span></li></ul>
+      </div>
+
+      <div>
+        <h2>Inspector</h2>
+        <div id="inspect">Click the world. You'll see the bytes under that point read as code in all four directions — the same matter means different things depending on which way a spark crosses it.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="p-verse" role="tabpanel" aria-labelledby="tab-verse" hidden>
+    <p class="thesis" style="margin-bottom:16px">Twelve small universes from the same seed, differing only in physics: reach across, cosmic-ray rate down. This is the sweep that found the habitable band, running live (give it half a minute; small worlds ignite late, and a 64² world almost never does). Click one to load its physics into the big world.</p>
+    <div id="verse"></div>
+  </section>
+
+  <section class="notes">
+    <div>
+      <h3>What is given, what is not</h3>
+      <p>Not given: organisms, boundaries, goals, a reading frame. Every earlier code-soup (Tierra, Avida, the 2024 BFF soup) hands life a container — a fixed tape per creature. Here there is only one field; where a body starts and stops has to emerge.</p>
+      <p>Given, honestly: the <em>executor</em>. A spark reads a straight ray, works for <code>reach</code> steps, and a spark that copied productively begets a child where it wrote and fires again in place. That inheritance of execution is stipulated — without it a copy is never run, and nothing lives.</p>
+    </div>
+    <div>
+      <h3>The lens</h3>
+      <p>For each cell: <code>T</code>, how fast its matter is being overwritten; <code>P</code>, of the cells just overwritten nearby, what share still carry the old form — in the best-matching frame, corrected for luck. Living = T·P. Front = T·(1−P). It knows nothing about this world: on Conway's Life it reads a glider as 1.00 living, a still life as inert, chaos as 0.14.</p>
+      <p>It was wrong twice on the way. It called a copy-disabled control 28% alive (one <code>+</code> in a still patch looked like persistence), then called Life's chaos 79% alive (searching 27 frames finds lucky matches in a binary alphabet). Both caught by controls, both fixed.</p>
+    </div>
+    <div>
+      <h3>What the soup taught</h3>
+      <p><span class="fail">My hand-written replicator went extinct</span> — it overwrote its own bracket. The first thing that ever took over was one I never designed: <code>[ L0 , ]</code>, where each spark smears a single byte and only the <em>population</em> of sparks copies a row. Replication as a collective act.</p>
+      <p>Eight scheduling dials gave only mud or monoculture. The missing quantity was reach. In-place arithmetic turned out to be the mutation operator: switch it off and the world collapses to seven symbols. Second-order selves were hunted by pointing the same lens at a coarse map of aliveness: <span class="fail">not found</span>. Coherence beat a time-shuffled null only slightly (0.54 vs 0.47, three seeds) — what slow first-order bodies alone would give. Left alone for 12,000 epochs the world settles near 6% living, in islands, inside a sea of front.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+// SELVEDGE substrate: one torus of bytes, no tapes, no organisms given.
+// A "spark" lands somewhere, faces one of 4 ways, and reads the bytes along a
+// straight ray as code. Two heads (h0,h1) start under it and move RELATIVE to
+// the ray, so a byte-string means the same thing in every orientation.
+// Pure module: no DOM, seeded PRNG — runs identically in Node and a Worker.
+
+const OPS = ['·', 'F0', 'B0', 'L0', 'R0', 'F1', 'B1', 'L1', 'R1', '+', '-', '.', ',', '[', ']'];
+const F0 = 1, B0 = 2, L0 = 3, R0 = 4, F1 = 5, B1 = 6, L1 = 7, R1 = 8, INC = 9, DEC = 10, CP01 = 11, CP10 = 12, OPEN = 13, CLOSE = 14;
+const OP = { F0, B0, L0, R0, F1, B1, L1, R1, INC, DEC, CP01, CP10, OPEN, CLOSE };
+
+const DEFAULTS = {
+  w: 256, h: 256, seed: 1,
+  density: 1,          // byte values per opcode: 1 → 14/256 are code (BFF-like), 8 → 112/256
+  stepCap: 128,        // max instructions per spark
+  sparksPerEpoch: 0,   // 0 → w*h/16
+  mutation: 1 / 4096,  // cosmic rays per cell per epoch
+  copyEnabled: true,   // false = negative control physics
+  speciesMinCopies: 8,
+  follow: 0,           // P(a spark that copied ≥followMin bytes begets a child spark where it first wrote)
+  followMin: 4,
+  arith: 1,            // 0 = + and - are inert (tests whether in-place arithmetic is the soup's heat source)
+  blockCopy: 0,        // 1 = copy ops also advance both heads one cell along the ray (LDIR-like)
+  refire: 0,           // P(a productive spark also fires again in place next epoch) — metabolism: bodies get re-woven
+  followOn: 0,         // 0 = any effective copies count (stamps included) · 1 = only copies that move to a new target
+  randomFrac: 0.25,    // share of each epoch's spark budget reserved for random landings
+};
+
+class World {
+  constructor(opts = {}) {
+    const o = this.o = { ...DEFAULTS, ...opts };
+    if (!o.sparksPerEpoch) o.sparksPerEpoch = (o.w * o.h) >> 4;
+    this.w = o.w; this.h = o.h; this.n = o.w * o.h;
+    this.s = (o.seed * 2654435761) >>> 0 || 1;
+    this.cells = new Uint8Array(this.n);
+    this.activity = new Uint16Array(this.n);   // writes since last clearActivity()
+    this.table = new Uint8Array(256);          // byte → opcode (0 = inert data). byte 0 is never code.
+    for (let op = 1; op <= 14; op++) for (let k = 0; k < o.density; k++) this.table[1 + (op - 1) * o.density + k] = op;
+    this.walls = null;                         // optional Uint8Array mask: sparks & heads can't cross
+    this.epoch = 0;
+    this.stats = { sparks: 0, steps: 0, copies: 0, writes: 0 };
+    this.species = new Map();                  // hash → {count, code}
+    this.queue = []; this.next = [];           // follow-sparks: [pos, dir, ...]
+    this.trace = null;                         // set to [] to record sparks for rendering
+    for (let i = 0; i < this.n; i++) this.cells[i] = this.rand() * 256;
+  }
+
+  rand() { let s = this.s; s ^= s << 13; s ^= s >>> 17; s ^= s << 5; this.s = s >>>= 0; return s / 4294967296; }
+
+  byteFor(op, k = 0) { return 1 + (op - 1) * this.o.density + k; }
+
+  move(i, dir) { // torus step; dir 0=E 1=S 2=W 3=N
+    const w = this.w, h = this.h, x = i % w, y = (i / w) | 0;
+    switch (dir & 3) {
+      case 0: return y * w + (x + 1) % w;
+      case 1: return ((y + 1) % h) * w + x;
+      case 2: return y * w + (x + w - 1) % w;
+      default: return ((y + h - 1) % h) * w + x;
+    }
+  }
+
+  write(i, v) { this.cells[i] = v; if (this.activity[i] < 65535) this.activity[i]++; this.stats.writes++; }
+
+  // Run one spark. Returns number of copy ops performed.
+  spark(p, d, rec) {
+    const { cells, table, o } = this, cap = o.stepCap;
+    let ip = p, h0 = p, h1 = p, copies = 0, off = 0, loopA = 0, loopB = 0, looped = false, steps = 0, first = -1, moved = 0, lastT = -1, lastU = -1;
+    const walls = this.walls;
+    for (; steps < cap; steps++) {
+      const op = table[cells[ip]];
+      let t;
+      switch (op) {
+        case F0: t = this.move(h0, d); if (!walls || !walls[t]) h0 = t; break;
+        case B0: t = this.move(h0, d + 2); if (!walls || !walls[t]) h0 = t; break;
+        case L0: t = this.move(h0, d + 3); if (!walls || !walls[t]) h0 = t; break;
+        case R0: t = this.move(h0, d + 1); if (!walls || !walls[t]) h0 = t; break;
+        case F1: t = this.move(h1, d); if (!walls || !walls[t]) h1 = t; break;
+        case B1: t = this.move(h1, d + 2); if (!walls || !walls[t]) h1 = t; break;
+        case L1: t = this.move(h1, d + 3); if (!walls || !walls[t]) h1 = t; break;
+        case R1: t = this.move(h1, d + 1); if (!walls || !walls[t]) h1 = t; break;
+        case INC: if (o.arith) this.write(h0, (cells[h0] + 1) & 255); break;
+        case DEC: if (o.arith) this.write(h0, (cells[h0] + 255) & 255); break;
+        case CP01: if (o.copyEnabled && h0 !== h1) { if (first < 0) first = h1; if (h1 !== lastT) { moved++; lastT = h1; } this.write(h1, cells[h0]); copies++; if (o.blockCopy) { t = this.move(h0, d); if (!walls || !walls[t]) h0 = t; t = this.move(h1, d); if (!walls || !walls[t]) h1 = t; } } break;
+        case CP10: if (o.copyEnabled && h0 !== h1) { if (first < 0) first = h0; if (h0 !== lastU) { moved++; lastU = h0; } this.write(h0, cells[h1]); copies++; if (o.blockCopy) { t = this.move(h0, d); if (!walls || !walls[t]) h0 = t; t = this.move(h1, d); if (!walls || !walls[t]) h1 = t; } } break;
+        case OPEN:
+          if (cells[h0] === 0) { // skip forward to matching ]
+            let depth = 1, q = ip, k = 0;
+            while (depth && k++ < cap) { q = this.move(q, d); const c = table[cells[q]]; if (c === OPEN) depth++; else if (c === CLOSE) depth--; }
+            if (depth) { steps = cap; continue; }
+            off += k; ip = q;
+          }
+          break;
+        case CLOSE:
+          if (cells[h0] !== 0) { // jump back to matching [
+            let depth = 1, q = ip, k = 0;
+            while (depth && k++ < cap) { q = this.move(q, d + 2); const c = table[cells[q]]; if (c === CLOSE) depth++; else if (c === OPEN) depth--; }
+            if (depth) { steps = cap; continue; }
+            loopA = off - k; loopB = off; looped = true; off -= k; ip = q;
+          }
+          break;
+      }
+      ip = this.move(ip, d); off++;
+      if (walls && walls[ip]) break;
+    }
+    this.stats.steps += steps; this.stats.copies += copies;
+    this.stats.moved = (this.stats.moved || 0) + moved;
+    if (moved >= o.speciesMinCopies && looped) this.#census(p, d, loopA, loopB, copies);
+    if (o.follow && (o.followOn ? moved : copies) >= o.followMin) {
+      if (this.rand() < o.follow) this.next.push(first, d);
+      if (o.refire && this.rand() < o.refire) this.next.push(p, d);
+    }
+    if (rec) rec.push(p, d, Math.min(off, cap), copies);
+    return copies;
+  }
+
+  // Identity = the code a spark actually looped through while copying — nothing else.
+  #census(p, d, a, b, copies) {
+    let q = p, from = a;
+    if (from < 0) for (let i = 0; i > from; i--) q = this.move(q, d + 2); else for (let i = 0; i < from; i++) q = this.move(q, d);
+    let hash = 2166136261, code = '';
+    for (let i = from; i <= b; i++, q = this.move(q, d)) {
+      const op = this.table[this.cells[q]];
+      if (!op) continue;
+      hash = Math.imul(hash ^ op, 16777619) >>> 0; code += OPS[op] + ' ';
+    }
+    const e = this.species.get(hash);
+    if (e) { e.count++; e.copies += copies; } else this.species.set(hash, { count: 1, copies, code: code.trim() });
+  }
+
+  epochStep() {
+    const { o, n } = this;
+    const q = this.queue, maxF = Math.floor(o.sparksPerEpoch * (1 - o.randomFrac)) * 2;
+    let used = 0;
+    if (q.length > maxF) { // over budget: keep a random subset
+      for (let i = 0; i < maxF; i += 2) { const j = i + (((this.rand() * ((q.length - i) >> 1)) | 0) << 1); const a = q[j], b = q[j + 1]; q[j] = q[i]; q[j + 1] = q[i + 1]; q[i] = a; q[i + 1] = b; }
+      q.length = maxF;
+    }
+    for (let i = 0; i < q.length; i += 2, used++) this.spark(q[i], q[i + 1], this.trace);
+    this.stats.followed = (this.stats.followed || 0) + used;
+    this.queue = this.next; this.next = [];
+    for (let k = used; k < o.sparksPerEpoch; k++) this.spark((this.rand() * n) | 0, (this.rand() * 4) | 0, this.trace);
+    const rays = o.mutation * n; let m = Math.floor(rays) + (this.rand() < rays % 1 ? 1 : 0);
+    while (m--) this.write((this.rand() * n) | 0, (this.rand() * 256) | 0);
+    this.stats.sparks += o.sparksPerEpoch; this.epoch++;
+  }
+
+  clearActivity() { this.activity.fill(0); }
+  takeSpecies() { const s = this.species; this.species = new Map(); return s; }
+  takeStats() { const s = this.stats; this.stats = { sparks: 0, steps: 0, copies: 0, writes: 0 }; return s; }
+}
+
+// Theseus lens — substrate-agnostic. Feed it snapshots of any 2D world of small
+// integers (+ optionally a per-cell count of writes since the last snapshot).
+//   T  turnover    : how much a cell's matter is being replaced
+//   P  persistence : of the cells nearby whose matter was JUST replaced, what share still
+//                    carry the old form — in the best frame (max over small shifts and lags).
+//                    Judged only on turned-over cells: an untouched neighbourhood proves nothing.
+//                    Chance-corrected: searching shifts×lags finds lucky matches, badly so in
+//                    small alphabets (binary CA), so P is scored above the expected best-by-luck.
+//   living = T·P   (matter turns over, form persists)
+//   front  = T·(1−P)  (turnover without persistence: noise, war, invasion)
+//   inert  = low T
+class Lens {
+  constructor(w, h, opts = {}) {
+    this.w = w; this.h = h; this.n = w * h;
+    this.radius = opts.radius ?? 1;        // shift tolerance; 0 = Eulerian (same-place) lens
+    this.patch = opts.patch ?? 2;          // patch half-size
+    this.lags = opts.lags ?? [1];
+    this.decay = opts.decay ?? 0.8;
+    this.eps = opts.eps ?? 0.02;
+    this.maxLag = Math.max(...this.lags);
+    this.frames = [];
+    this.T = new Float32Array(this.n);
+    this.P = new Float32Array(this.n);
+    this.living = new Float32Array(this.n);
+    this.front = new Float32Array(this.n);
+  }
+
+  // frame: Uint8Array (copied). activity: optional per-cell write counts for the interval.
+  push(frame, activity) { this.begin(frame, activity); this.work(Infinity); }
+
+  // Time-sliced form for UI threads: begin() snapshots, work(ms) returns true when the pass is complete.
+  begin(frame, activity) {
+    const { n, T, decay } = this;
+    const cur = Uint8Array.from(frame);
+    const last = this.frames[this.frames.length - 1];
+    const act = this.act = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      const a = activity ? Math.min(activity[i], 1) : (last && last[i] !== cur[i] ? 1 : 0);
+      act[i] = a; T[i] = T[i] * decay + a * (1 - decay);
+    }
+    const hist = new Float64Array(256); for (let i = 0; i < n; i++) hist[cur[i]]++;
+    this.p0 = hist.reduce((a, c) => a + (c / n) ** 2, 0);   // chance two cells agree
+    this.frames.push(cur);
+    if (this.frames.length > this.maxLag + 1) this.frames.shift();
+    this.cur = cur; this.row = 0;
+  }
+
+  get busy() { return this.row < this.h; }
+
+  work(ms) {
+    const t0 = ms === Infinity ? 0 : performance.now();
+    while (this.row < this.h) {
+      this.#persistence(this.cur, this.row, Math.min(this.h, this.row + 8)); this.row += 8;
+      if (ms !== Infinity && performance.now() - t0 > ms) break;
+    }
+    return this.row >= this.h;
+  }
+
+  #persistence(cur, y0, y1) {
+    const { w, h, n, T, P, living, front, radius: R, patch: K, eps, act, p0 } = this;
+    const z = Math.sqrt(2 * Math.log(Math.max(2, this.lags.length * (2 * R + 1) ** 2)));
+    for (let i = y0 * w; i < y1 * w; i++) {
+      if (T[i] < eps) { P[i] = 0; living[i] = 0; front[i] = 0; continue; }
+      const x = i % w, y = (i / w) | 0;
+      let best = -1, bestK = 1;
+      for (const lag of this.lags) {
+        const prev = this.frames[this.frames.length - 1 - lag];
+        if (!prev) continue;
+        for (let sy = -R; sy <= R; sy++) for (let sx = -R; sx <= R; sx++) {
+          let match = 0, union = 0;
+          for (let dy = -K; dy <= K; dy++) {
+            const yc = ((y + dy + h) % h) * w, yp = ((y + dy + sy + h + h) % h) * w;
+            for (let dx = -K; dx <= K; dx++) {
+              const j = yc + (x + dx + w) % w;
+              if (!act[j]) continue;
+              union++; if (cur[j] === prev[yp + (x + dx + sx + w + w) % w]) match++;
+            }
+          }
+          const s = union ? match / union : -1;
+          if (s > best) { best = s; bestK = union; }
+        }
+      }
+      if (best < 0) best = P[i]; // nothing turned over nearby this interval: hold last judgement
+      else { const base = Math.min(0.95, p0 + z * Math.sqrt(p0 * (1 - p0) / bestK)); best = Math.max(0, (best - base) / (1 - base)); }
+      P[i] = best; living[i] = T[i] * best; front[i] = T[i] * (1 - best);
+    }
+  }
+}
+
+</script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const N = 256, PHYS = { blockCopy: 1, follow: 1, refire: 1, followOn: 1, followMin: 8 };
+  const MUTS = [0, 1 / 65536, 1 / 4096, 1 / 1024, 1 / 256, 1 / 64, 1 / 16], MUTL = ['none', '1/65536', '1/4096', '1/1024', '1/256', '1/64', '1/16'];
+  const CLS = [0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 5, 5];               // opcode → class
+  const CLSRGB = [[0, 0, 0], [111, 195, 181], [224, 150, 90], [167, 139, 214], [243, 234, 208], [240, 112, 127]];
+  const CLSTOK = ['t0', 'tm0', 'tm1', 'ta', 'tc', 'tb'];
+  const LIV = [134, 230, 196], FRO = [255, 125, 69], THETA = 0.25;
+  const wctx = $('world').getContext('2d'), gctx = $('glow').getContext('2d'), octx = $('over').getContext('2d'), tctx = $('timeline').getContext('2d');
+  const img = wctx.createImageData(N, N), gimg = gctx.createImageData(N, N);
+  let W, L, seed = 1, running = true, since = 0, hist = [], sel = -1, census = [], lensDirty = true;
+  const radio = name => document.querySelector(`input[name=${name}]:checked`).value;
+
+  function bigBang(extra = {}) {
+    W = new World({ ...PHYS, w: N, h: N, seed, stepCap: +$('reach').value, mutation: MUTS[+$('mut').value], ...extra });
+    W.trace = []; W.walls = new Uint8Array(N * N);
+    L = new Lens(N, N, { radius: 1, patch: 2, lags: [1], decay: 0.7 });
+    hist = []; since = 0; census = []; $('seedlabel').textContent = 'seed ' + seed; renderCensus();
+  }
+
+  function lensDone() {
+    let liv = 0, fro = 0, code = 0;
+    for (let i = 0; i < N * N; i++) { if (L.living[i] > THETA) liv++; else if (L.front[i] > THETA) fro++; if (W.table[W.cells[i]]) code++; }
+    hist.push([liv / (N * N), fro / (N * N)]); if (hist.length > 900) hist.shift();
+    $('r-liv').textContent = (100 * liv / (N * N)).toFixed(1) + '%'; $('r-fro').textContent = (100 * fro / (N * N)).toFixed(1) + '%';
+    $('r-code').textContent = (100 * code / (N * N)).toFixed(0) + '%';
+    const sp = [...W.takeSpecies().entries()].sort((a, b) => b[1].copies - a[1].copies), tot = sp.reduce((a, [, v]) => a + v.copies, 0) || 1;
+    census = sp.slice(0, 6).map(([h, v]) => ({ h, code: v.code, share: v.copies / tot }));
+    renderCensus(); drawTimeline(); lensDirty = true; if (sel >= 0) inspect(sel);
+  }
+
+  function renderCensus() {
+    if (!census.length) return;
+    $('census').innerHTML = census.map(s => `<li><i style="background:hsl(${s.h % 360} 60% 62%)"></i><code title="${s.code}">[ ${s.code.replace(/^\[ ?| ?\]$/g, '')} ]</code><span>${(100 * s.share).toFixed(0)}%</span></li>`).join('');
+  }
+
+  function drawTimeline() {
+    const c = $('timeline'), w = c.width, h = c.height; tctx.fillStyle = '#090a10'; tctx.fillRect(0, 0, w, h);
+    const dx = w / 900;
+    hist.forEach(([l, f], i) => {
+      const x = i * dx, hl = l * h, hf = f * h;
+      tctx.fillStyle = '#2c3150'; tctx.fillRect(x, 0, dx + .5, h - hl - hf);
+      tctx.fillStyle = '#ff7d45'; tctx.fillRect(x, h - hl - hf, dx + .5, hf);
+      tctx.fillStyle = '#86e6c4'; tctx.fillRect(x, h - hl, dx + .5, hl);
+    });
+  }
+
+  function paint() {
+    const view = radio('view'), d = img.data, g = gimg.data, cells = W.cells, table = W.table, walls = W.walls;
+    for (let i = 0, o = 0; i < N * N; i++, o += 4) {
+      const b = cells[i], op = table[b], c = CLSRGB[CLS[op]];
+      const lv = view === 'code' ? 0 : Math.min(1, L.living[i] * 1.8), fr = view === 'code' ? 0 : Math.min(1, L.front[i] * 1.25) * (view === 'lens' ? 1 : .72);
+      const k = view === 'lens' ? 0 : view === 'code' ? 1 : 0.5 * (1 - 0.55 * Math.max(lv, fr));
+      let r = op ? c[0] * k : (10 + (b >> 3)) * (k + .25), gg = op ? c[1] * k : (11 + (b >> 3)) * (k + .25), bl = op ? c[2] * k : (18 + (b >> 3)) * (k + .25);
+      r += LIV[0] * lv * .8 + FRO[0] * fr * .85; gg += LIV[1] * lv * .8 + FRO[1] * fr * .85; bl += LIV[2] * lv * .8 + FRO[2] * fr * .85;
+      if (walls[i]) { r = 228; gg = 223; bl = 210; }
+      d[o] = r; d[o + 1] = gg; d[o + 2] = bl; d[o + 3] = 255;
+      if (lensDirty) { g[o] = LIV[0] * lv + FRO[0] * fr; g[o + 1] = LIV[1] * lv + FRO[1] * fr * .6; g[o + 2] = LIV[2] * lv; g[o + 3] = 255; }
+    }
+    wctx.putImageData(img, 0, 0);
+    if (lensDirty) { gctx.putImageData(gimg, 0, 0); lensDirty = false; }
+    // sparks that copied something this epoch: brief tracer rays
+    octx.clearRect(0, 0, 768, 768); const tr = W.trace, DX = [1, 0, -1, 0], DY = [0, 1, 0, -1];
+    {
+      octx.strokeStyle = 'rgba(243,234,208,.5)'; octx.lineWidth = 1; octx.beginPath();
+      for (let i = 0; i < tr.length; i += 4) {
+        if (tr[i + 3] < 4) continue;
+        const x = (tr[i] % N + .5) * 3, y = (((tr[i] / N) | 0) + .5) * 3, len = Math.min(tr[i + 2], 24) * 3, dd = tr[i + 1];
+        octx.moveTo(x, y); octx.lineTo(x + DX[dd] * len, y + DY[dd] * len);
+      }
+      octx.stroke();
+    }
+    if (sel >= 0) { octx.strokeStyle = '#e4dfd2'; octx.lineWidth = 1.5; octx.strokeRect((sel % N) * 3 - 4, ((sel / N) | 0) * 3 - 4, 11, 11); }
+    $('r-epoch').textContent = W.epoch.toLocaleString();
+  }
+
+  function frame() {
+    if (running && !$('p-world').hidden) {
+      const budget = +radio('speed'), t0 = performance.now();
+      do {
+        W.trace.length = 0; W.epochStep();
+        if (++since >= 25 && !L.busy) { L.begin(W.cells, W.activity); W.clearActivity(); since = 0; }
+      } while (performance.now() - t0 < budget);
+      if (L.busy && L.work(5)) lensDone();
+      paint();
+    } else if (!$('p-verse').hidden) verseFrame();
+    requestAnimationFrame(frame);
+  }
+
+  // ---- hand ----
+  const HINTS = { inspect: 'Click anywhere to read the code living there.', irradiate: 'Drag to scramble a region with random bytes. Watch what reclaims it.', sterilise: 'Drag to zero a region. Zero is inert — and a copier stops when its read-head meets one.', wall: 'Drag to draw a wall no spark or head can cross. Cut a body in two and see if both halves stay one self.', seed: 'Click to plant a hand-written 4-byte weaver, L1 [ . ] — panspermia, not emergence. Labelled as such on purpose.' };
+  document.querySelectorAll('input[name=tool]').forEach(r => r.addEventListener('change', () => $('toolhint').textContent = HINTS[radio('tool')]));
+  function cellAt(e) { const r = $('stage').getBoundingClientRect(); return [Math.max(0, Math.min(N - 1, ((e.clientX - r.left) / r.width * N) | 0)), Math.max(0, Math.min(N - 1, ((e.clientY - r.top) / r.height * N) | 0))]; }
+  function apply(e) {
+    const [x, y] = cellAt(e), tool = radio('tool');
+    if (tool === 'inspect') { sel = y * N + x; inspect(sel); }
+    else if (tool === 'seed') { [7, 13, 11, 14].forEach((op, k) => W.write(y * N + (x + k) % N, W.byteFor(op))); }
+    else { const R = tool === 'wall' ? 1 : 7; for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { if (dx * dx + dy * dy > R * R + 1) continue; const i = ((y + dy + N) % N) * N + (x + dx + N) % N; if (tool === 'wall') W.walls[i] = 1; else W.write(i, tool === 'sterilise' ? 0 : (Math.random() * 256) | 0); } }
+    if (!running) paint();
+  }
+  let down = false;
+  $('stage').addEventListener('pointerdown', e => { down = true; $('stage').setPointerCapture(e.pointerId); apply(e); });
+  $('stage').addEventListener('pointermove', e => { if (down && radio('tool') !== 'seed') apply(e); });
+  $('stage').addEventListener('pointerup', () => down = false);
+
+  function inspect(i) {
+    const x = i % N, y = (i / N) | 0, T = L.T[i], P = L.P[i], lv = L.living[i], fr = L.front[i];
+    const verdict = lv > THETA ? ['living', 'var(--living)'] : fr > THETA ? ['front', 'var(--front)'] : ['inert', 'var(--mute)'];
+    let h = `cell ${x},${y} · byte ${W.cells[i]} · <span class="v" style="color:${verdict[1]}">${verdict[0]}</span> · turnover ${T.toFixed(2)} · persistence ${P.toFixed(2)}<br>`;
+    ['→ east ', '↓ south', '← west ', '↑ north'].forEach((name, d) => {
+      let q = i, s = ''; for (let k = 0; k < 18; k++, q = W.move(q, d)) { const op = W.table[W.cells[q]]; s += `<span class="tok ${CLSTOK[CLS[op]]}">${OPS[op]}</span>`; }
+      h += `<span style="color:var(--mute)">${name}</span> ${s}<br>`;
+    });
+    $('inspect').innerHTML = h;
+  }
+
+  // ---- controls ----
+  $('b-run').onclick = () => { running = !running; $('b-run').textContent = running ? 'Pause' : 'Run'; };
+  $('b-bang').onclick = () => { seed++; sel = -1; bigBang(); };
+  $('reach').oninput = () => { $('o-reach').textContent = $('reach').value + ' steps'; W.o.stepCap = +$('reach').value; };
+  $('mut').oninput = () => { $('o-mut').textContent = MUTL[+$('mut').value]; W.o.mutation = MUTS[+$('mut').value]; };
+
+  // ---- multiverse ----
+  let verse = null, vi = 0;
+  function buildVerse() {
+    verse = [];
+    for (const mu of [0, 2, 4]) for (const reach of [8, 12, 24, 64]) {
+      const el = document.createElement('button'); el.className = 'tile';
+      el.innerHTML = `<canvas width="96" height="96"></canvas><p><span>reach ${reach} · rays ${MUTL[mu]}</span><b>0%</b></p>`;
+      $('verse').appendChild(el);
+      const w = new World({ ...PHYS, w: 96, h: 96, seed: 5, stepCap: reach, mutation: MUTS[mu] });
+      const v = { w, l: new Lens(96, 96, { radius: 1, patch: 2, lags: [1], decay: 0.7 }), ctx: el.querySelector('canvas').getContext('2d'), out: el.querySelector('b'), since: 0 };
+      v.img = v.ctx.createImageData(96, 96); verse.push(v);
+      el.onclick = () => { $('reach').value = reach; $('mut').value = mu; $('reach').oninput(); $('mut').oninput(); bigBang(); show('world'); };
+    }
+  }
+  function verseFrame() {
+    if (!verse) buildVerse();
+    const t0 = performance.now();
+    while (performance.now() - t0 < 14) {
+      const v = verse[vi = (vi + 1) % verse.length];
+      for (let k = 0; k < 5; k++) v.w.epochStep();
+      if ((v.since += 5) < 25) continue;
+      v.since = 0; v.l.push(v.w.cells, v.w.activity); v.w.clearActivity();
+      let liv = 0; const d = v.img.data;
+      for (let i = 0, o = 0; i < 9216; i++, o += 4) {
+        const lv = Math.min(1, v.l.living[i] * 1.8), fr = Math.min(1, v.l.front[i] * 1.8), b = v.w.cells[i] >> 4; if (v.l.living[i] > THETA) liv++;
+        d[o] = 9 + b + LIV[0] * lv * .8 + FRO[0] * fr * .85; d[o + 1] = 10 + b + LIV[1] * lv * .8 + FRO[1] * fr * .85; d[o + 2] = 16 + b + LIV[2] * lv * .8 + FRO[2] * fr * .85; d[o + 3] = 255;
+      }
+      v.ctx.putImageData(v.img, 0, 0); v.out.textContent = (100 * liv / 9216).toFixed(0) + '% living';
+    }
+  }
+  function show(which) {
+    for (const k of ['world', 'verse']) { $('p-' + k).hidden = k !== which; $('tab-' + k).setAttribute('aria-selected', k === which); }
+  }
+  $('tab-world').onclick = () => show('world'); $('tab-verse').onclick = () => show('verse');
+
+  bigBang(); requestAnimationFrame(frame);
+})();
+</script>
