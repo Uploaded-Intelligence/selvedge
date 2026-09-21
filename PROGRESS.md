@@ -1,10 +1,11 @@
 # PROGRESS — Selvedge
 
 ## Current state (2026-09-22)
+- Repo (private): https://github.com/Uploaded-Intelligence/selvedge
 - v1 published, private: https://claude.ai/artifact/BeaD7i2JDvp3HWMzBVD6pi — rebuild with `node page/build.mjs` (inlines `sim/*.js` into `page/template.html` → `index.html`), then republish `index.html`.
 - Working physics: `blockCopy=1 follow=1 refire=1 followOn=1 followMin=8`, default reach (`stepCap`) 12, mutation 1/4096, 256².
 - Lens validated on Game of Life; soup control dead; 3-seed long runs consistent. Full record in NOTEBOOK.md (E0–E14).
-- WIN status: parts 1–3 met. Second-order selves: NOT found (E12).
+- WIN status: (1) lens ✓ (2) unaided ignition ✓, dead control ✓, multi-species ✓ (8+ spp, one family — E15), disassembly matches census ✓ (3) multiverse ✓. North star (second-order selves): NOT found (E12).
 
 ## Key decisions + why
 - **Lens judges persistence only on turned-over cells, chance-corrected.** Two earlier versions called noise alive; caught by controls (E9b).
