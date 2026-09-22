@@ -20,6 +20,7 @@ export const DEFAULTS = {
   followMin: 4,
   arith: 1,            // 0 = + and - are inert (tests whether in-place arithmetic is the soup's heat source)
   blockCopy: 0,        // 1 = copy ops also advance both heads one cell along the ray (LDIR-like)
+  quiescent: 0,        // 1 = a copy that changes nothing is NOT productive: intact bodies stop inheriting sparks and go dormant (Deacon's mutual termination)
   refire: 0,           // P(a productive spark also fires again in place next epoch) — metabolism: bodies get re-woven
   followOn: 0,         // 0 = any effective copies count (stamps included) · 1 = only copies that move to a new target
   randomFrac: 0.25,    // share of each epoch's spark budget reserved for random landings
@@ -88,8 +89,8 @@ export class World {
         case R1: t = this.move(h1, d + 1); if (!walls || !walls[t]) h1 = t; break;
         case INC: if (o.arith) this.write(h0, (cells[h0] + 1) & 255); break;
         case DEC: if (o.arith) this.write(h0, (cells[h0] + 255) & 255); break;
-        case CP01: if (o.copyEnabled && h0 !== h1) { if (first < 0) first = h1; if (h1 !== lastT) { moved++; lastT = h1; } this.write(h1, cells[h0]); copies++; if (o.blockCopy) { t = this.move(h0, d); if (!walls || !walls[t]) h0 = t; t = this.move(h1, d); if (!walls || !walls[t]) h1 = t; } } break;
-        case CP10: if (o.copyEnabled && h0 !== h1) { if (first < 0) first = h0; if (h0 !== lastU) { moved++; lastU = h0; } this.write(h0, cells[h1]); copies++; if (o.blockCopy) { t = this.move(h0, d); if (!walls || !walls[t]) h0 = t; t = this.move(h1, d); if (!walls || !walls[t]) h1 = t; } } break;
+        case CP01: if (o.copyEnabled && h0 !== h1) { if (!o.quiescent || cells[h1] !== cells[h0]) { if (first < 0) first = h1; if (h1 !== lastT) { moved++; lastT = h1; } copies++; } this.write(h1, cells[h0]); if (o.blockCopy) { t = this.move(h0, d); if (!walls || !walls[t]) h0 = t; t = this.move(h1, d); if (!walls || !walls[t]) h1 = t; } } break;
+        case CP10: if (o.copyEnabled && h0 !== h1) { if (!o.quiescent || cells[h0] !== cells[h1]) { if (first < 0) first = h0; if (h0 !== lastU) { moved++; lastU = h0; } copies++; } this.write(h0, cells[h1]); if (o.blockCopy) { t = this.move(h0, d); if (!walls || !walls[t]) h0 = t; t = this.move(h1, d); if (!walls || !walls[t]) h1 = t; } } break;
         case OPEN:
           if (cells[h0] === 0) { // skip forward to matching ]
             let depth = 1, q = ip, k = 0;

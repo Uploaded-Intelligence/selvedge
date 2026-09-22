@@ -14,7 +14,9 @@ const L = new Lens(w, h, { radius: 1, patch: 2, lags: [1], decay: 0.7 });
 for (let e = 1; e <= warm; e++) { W.epochStep(); if (e % 25 === 0) { L.push(W.cells, W.activity); W.clearActivity(); } }
 
 // candidate wound centres by lens class
-const cls = i => L.living[i] > .25 ? 'living' : L.front[i] > .25 ? 'front' : 'inert';
+const codeFrac = i => { const x = i % w, y = (i / w) | 0; let c = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (W.table[W.cells[((y + dy + h) % h) * w + (x + dx + w) % w]]) c++; return c / 25; };
+// dormant = quiet by the lens (T<eps) but code-rich: a body at rest, invisible to a turnover lens
+const cls = i => L.living[i] > .25 ? 'living' : L.front[i] > .25 ? 'front' : (L.T[i] < 0.02 && codeFrac(i) > 0.6) ? 'dormant' : 'inert';
 const centres = []; for (let i = 0; i < n; i++) if (cls(i) === where) centres.push(i);
 if (centres.length < trials) { console.log(`only ${centres.length} ${where} cells`); process.exit(1); }
 let s = 99; const pick = () => { s = (s * 1103515245 + 12345) >>> 0; return centres[s % centres.length]; };
@@ -47,7 +49,7 @@ const tissue = (X) => { // per 4×4 block: 0 inert (few writes) · 1 living (wri
 const diffTissue = (A, B) => { const a = tissue(A), b = tissue(B); let d = 0; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) d++; return d * 16; };
 
 console.log(`where=${where} kind=${kind} warm=${warm} horizon=${horizon} trials=${trials}   (footprint as multiple of wound area)`);
-console.log('R   area   heal%  scar%  spread%  |  median footprint at horizon:   byte    class   tissue  | byte trajectory');
+console.log('R   area  tissue: heal/scar/spread  class-heal  byte-heal |  median footprint:  byte   class  tissue | byte trajectory');
 for (const R of String(radii).split(',').map(Number)) {
   const finals = [], finalsC = [], finalsT = [], traj = Array.from({ length: 7 }, () => []);
   for (let t = 0; t < trials; t++) {
@@ -62,6 +64,7 @@ for (const R of String(radii).split(',').map(Number)) {
   const q = (a, p) => { const b = a.slice().sort((x, y) => x - y); return b[Math.min(b.length - 1, Math.floor(p * b.length))]; };
   const heal = finalsT.filter(f => f < 0.5).length / trials, spread = finalsT.filter(f => f > 2).length / trials, scar = 1 - heal - spread; // graded at TISSUE level
   const area = Math.round(Math.PI * R * R) || 1;
-  console.log(String(R).padEnd(3), String(area).padEnd(6), (100 * heal).toFixed(0).padStart(5) + '%', (100 * scar).toFixed(0).padStart(5) + '%', (100 * spread).toFixed(0).padStart(7) + '%',
+  const healC = finalsC.filter(f => f < 0.5).length / trials, healB = finals.filter(f => f < 0.5).length / trials;
+  console.log(String(R).padEnd(3), String(area).padEnd(6), (100 * heal).toFixed(0).padStart(6) + '%' + (100 * scar).toFixed(0).padStart(4) + '%' + (100 * spread).toFixed(0).padStart(4) + '%', (100 * healC).toFixed(0).padStart(9) + '%', (100 * healB).toFixed(0).padStart(9) + '%',
     '  ', med(finals).toFixed(1).padStart(8), med(finalsC).toFixed(1).padStart(8), med(finalsT).toFixed(1).padStart(8), '  ', traj.slice(1).map(a => med(a).toFixed(0)).join('→'));
 }
