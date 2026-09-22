@@ -18,6 +18,9 @@ The **Theseus lens** marks, per cell, matter turning over while form persists (T
 - `WINNING.md` / `PROGRESS.md` — what winning looks like; where things stand.
 - `research/` — cited briefs on agent foundations, higher-level individuality, teleodynamics.
 
+## Words
+"Living" = a lens verdict about a place (turnover with persisting form). "Self" = a region whose fate is sealed by its own dynamics under intervention (coupled-fork wounds). "Individual" = a lineage of inherited execution. They do not coincide, and each has been caught blind to something — see the page's *What I mean by "self" and "living"* and `NOTEBOOK.md`. Not claimed: experience, goals, agency in the intentional sense.
+
 ## Status
 First-order selves: found, from noise, across seeds, with a dead control. Second-order selves (collectives with their own persistence): **not found** — and `NOTEBOOK.md` E16 argues that this says more about the instrument than about the world. That is the open front.
 

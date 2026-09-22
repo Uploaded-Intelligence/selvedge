@@ -102,7 +102,7 @@
       </div>
       <canvas id="timeline" width="900" height="64" aria-label="Share of the world that is living, front and inert over time"></canvas>
       <div class="legend">
-        <span><i style="background:var(--living)"></i>living — turnover, form persists</span>
+        <span><i style="background:var(--living)"></i>living — turnover, form persists (a lens verdict about a place; see below)</span>
         <span><i style="background:var(--front)"></i>front — turnover, form lost</span>
         <span><i style="background:var(--inert)"></i>inert — nothing is rewriting it</span>
       </div>
@@ -173,6 +173,21 @@
     <div id="verse"></div>
   </section>
 
+  <section class="notes" style="grid-template-columns: 1fr">
+    <div style="max-width:none">
+      <h3>What I mean by "self" and "living" — and what I don't</h3>
+      <p>Three different things wear these words here, and the world does not pick one. Each is an instrument; each has been caught blind to something.</p>
+      <div style="overflow-x:auto"><table style="border-collapse:collapse; font: 400 13px/1.5 var(--body); min-width:640px; margin: 8px 0 12px">
+        <tr style="color:var(--mute); font: 500 11px var(--mono); letter-spacing:.1em; text-transform:uppercase"><td style="padding:6px 12px 6px 0">word</td><td style="padding:6px 12px">operational meaning</td><td style="padding:6px 12px">what it sees</td><td style="padding:6px 12px">what it cannot see · where it failed</td></tr>
+        <tr style="border-top:1px solid var(--line)"><td style="padding:8px 12px 8px 0; color:var(--living); font:500 13px var(--mono); white-space:nowrap">living</td><td style="padding:8px 12px; max-width:34ch">A <em>place</em> whose matter is being overwritten while its local form persists (best frame, chance-corrected). A process property, not a predicate of a thing.</td><td style="padding:8px 12px">Where Theseus-like maintenance is happening, in any substrate — reads a Life glider as 1.00.</td><td style="padding:8px 12px; max-width:38ch">A self at rest: no turnover, no verdict. Called noise alive twice before controls caught it (E9b). Called a dead world "living" at reach 8 (E19).</td></tr>
+        <tr style="border-top:1px solid var(--line)"><td style="padding:8px 12px 8px 0; color:var(--bone); font:500 13px var(--mono); white-space:nowrap">self</td><td style="padding:8px 12px; max-width:34ch">A <em>region</em> whose fate is sealed by its own dynamics: wound it in a coupled twin world, and the consequence is erased or contained. A counterfactual boundary.</td><td style="padding:8px 12px">Bounded basins — at reach 10, most wounds in busy tissue are contained below 1% of the world for 1,200 epochs; some are erased to the byte.</td><td style="padding:8px 12px; max-width:38ch">Anything the executor couples for it: until the spark budget was made local, the scheduler itself carried causation across sealed walls, and every "compartment" was suspect (E21).</td></tr>
+        <tr style="border-top:1px solid var(--line)"><td style="padding:8px 12px 8px 0; color:var(--front); font:500 13px var(--mono); white-space:nowrap">individual</td><td style="padding:8px 12px; max-width:34ch">A <em>lineage</em> of inherited execution: a spark that copied begets sparks. Birth, age, territory, death.</td><td style="padding:8px 12px">Bodies as piles of short lineages (none older than ~400 epochs) sharing a place.</td><td style="padding:8px 12px; max-width:38ch">Cutting one lineage made its neighbours grow — competition for a world-wide budget, not dependence. The coupling was the allocator's (E20–21).</td></tr>
+      </table></div>
+      <p>They do not coincide. Two twin worlds kept identical <em>bodies</em> for 120 epochs while their <em>bytes</em> had diverged by thousands: the form persisted while nothing was the same. Which of the three is "the" self is fixed by the question asked, not by the soup.</p>
+      <p><strong>Not claimed:</strong> experience, goals, sentience, or agency in the intentional sense. "Self" here means self-maintenance and self-boundary; by Deacon's criteria this substrate is morphodynamic, not end-directed. <strong>Stipulated, and doing more than I knew:</strong> the executor — sparks, their inheritance, and the budget. The budget keeps the world alive (without it, life dies or bursts) <em>and</em> couples everything to everything. So "life" here is life relative to an executor I chose, and the <a href="https://github.com/Uploaded-Intelligence/selvedge/blob/main/NOTEBOOK.md" style="color:var(--living)">notebook</a> is mostly the record of finding out what that executor was quietly doing.</p>
+    </div>
+  </section>
+
   <section class="notes">
     <div>
       <h3>What is given, what is not</h3>
@@ -219,6 +234,17 @@ const DEFAULTS = {
   refire: 0,           // P(a productive spark also fires again in place next epoch) — metabolism: bodies get re-woven
   followOn: 0,         // 0 = any effective copies count (stamps included) · 1 = only copies that move to a new target
   randomFrac: 0.25,    // share of each epoch's spark budget reserved for random landings
+  alloc: 'cap',        // 'cap': fixed spark budget, over-budget queue → random subset, immigrants fill the rest (queue-LENGTH-dependent: a
+                       //        missing offspring anywhere re-keys distant execution — an allocator-mediated coupling, see E21).
+                       // 'thin': each queued spark kept independently w.p. thinP keyed by its OWN (pos,dir); immigrants fixed at
+                       //        randomFrac·sparksPerEpoch with stable keys. No global reallocation; total sparks/epoch may vary.
+                       // 'ratio': global cap kept, but each spark is kept independently w.p. cap/queueLength keyed by its OWN (pos,dir), and
+                       //        immigrants are fixed and stably keyed. The only world-wide channel left is one scalar (the ratio).
+                       // 'local': the SAME cap density, but enforced per overlapping 3×3-cell window of a coarse grid (cell = localCell²):
+                       //        keep w.p. min(1, windowCap / windowQueueCount). Carrying capacity becomes a neighbourhood property; no
+                       //        world-wide channel at all. gridOff shifts the grid (falsifier: compartments must not move with it).
+  thinP: 0.5, localCell: 16, gridOff: 0, localBoost: 1, // a window may hold up to boost× the even share (bodies concentrate execution); total stays bounded by windows×cap
+  lineage: 0,          // 1 = tag every spark with a lineage id its children inherit (census in linStats); adds no rnd calls, so the trajectory is unchanged
 };
 
 class World {
@@ -235,7 +261,8 @@ class World {
     this.epoch = 0;
     this.stats = { sparks: 0, steps: 0, copies: 0, writes: 0 };
     this.species = new Map();                  // hash → {count, code}
-    this.queue = []; this.next = [];           // follow-sparks: [pos, dir, ...]
+    this.queue = []; this.next = [];           // follow-sparks: [pos, dir, ...] — stride 3 [pos, dir, lin, ...] when o.lineage
+    this.linStats = o.lineage ? new Map() : null; // this epoch's lineage census: lin → {sparks, copies, blocks:Set<8×8 block>}; linBorn(lin) gives its birth epoch
     this.trace = null;                         // set to [] to record sparks for rendering
     for (let i = 0; i < this.n; i++) this.cells[i] = this.rand() * 256;
   }
@@ -265,9 +292,16 @@ class World {
 
   write(i, v) { this.cells[i] = v; if (this.activity[i] < 65535) this.activity[i]++; this.stats.writes++; }
 
-  // Run one spark. Returns number of copy ops performed.
-  spark(p, d, rec, k = 0) {
-    const { cells, table, o } = this, cap = o.stepCap;
+  // Lineage ids encode their birth: a random landing at slot k of epoch e is lin = e·sparksPerEpoch + k (unique — only
+  // random landings mint; followed sparks inherit). So age needs no table and fork() needs no extra state.
+  linBorn(lin) { return Math.floor(lin / this.o.sparksPerEpoch); }
+  blk(i) { return ((i / this.w) >> 3) * (this.w >> 3) + ((i % this.w) >> 3); }
+
+  // Run one spark. Returns number of copy ops performed. lin < 0 = random landing (mints a lineage when tracking).
+  spark(p, d, rec, k = 0, lin = -1) {
+    const { cells, table, o } = this, cap = o.stepCap, L = o.lineage;
+    if (this.walls && this.walls[p]) { if (rec) rec.push(p, d, 0, 0); return 0; } // a wall is impermeable: a spark landing on it dies (heads would otherwise start on it and step off into either side)
+    if (L && lin < 0) lin = this.epoch * o.sparksPerEpoch + k;
     let ip = p, h0 = p, h1 = p, copies = 0, off = 0, loopA = 0, loopB = 0, looped = false, steps = 0, first = -1, moved = 0, lastT = -1, lastU = -1;
     const walls = this.walls;
     for (; steps < cap; steps++) {
@@ -289,7 +323,7 @@ class World {
         case OPEN:
           if (cells[h0] === 0) { // skip forward to matching ]
             let depth = 1, q = ip, k = 0;
-            while (depth && k++ < cap) { q = this.move(q, d); const c = table[cells[q]]; if (c === OPEN) depth++; else if (c === CLOSE) depth--; }
+            while (depth && k++ < cap) { q = this.move(q, d); if (walls && walls[q]) { depth = -1; break; } const c = table[cells[q]]; if (c === OPEN) depth++; else if (c === CLOSE) depth--; }
             if (depth) { steps = cap; continue; }
             off += k; ip = q;
           }
@@ -297,7 +331,7 @@ class World {
         case CLOSE:
           if (cells[h0] !== 0) { // jump back to matching [
             let depth = 1, q = ip, k = 0;
-            while (depth && k++ < cap) { q = this.move(q, d + 2); const c = table[cells[q]]; if (c === CLOSE) depth++; else if (c === OPEN) depth--; }
+            while (depth && k++ < cap) { q = this.move(q, d + 2); if (walls && walls[q]) { depth = -1; break; } const c = table[cells[q]]; if (c === CLOSE) depth++; else if (c === OPEN) depth--; }
             if (depth) { steps = cap; continue; }
             loopA = off - k; loopB = off; looped = true; off -= k; ip = q;
           }
@@ -310,8 +344,12 @@ class World {
     this.stats.moved = (this.stats.moved || 0) + moved;
     if (moved >= o.speciesMinCopies && looped) this.#census(p, d, loopA, loopB, copies);
     if (o.follow && (o.followOn ? moved : copies) >= o.followMin) {
-      if (this.rnd(k, 1) < o.follow) this.next.push(first, d);
-      if (o.refire && this.rnd(k, 2) < o.refire) this.next.push(p, d);
+      if (this.rnd(k, 1) < o.follow) { this.next.push(first, d); if (L) this.next.push(lin); }
+      if (o.refire && this.rnd(k, 2) < o.refire) { this.next.push(p, d); if (L) this.next.push(lin); }
+    }
+    if (L) { // census: footprint = landing block + first-write block (a ray is ≤ stepCap cells, so this brackets the write-set)
+      let e = this.linStats.get(lin); if (!e) this.linStats.set(lin, e = { sparks: 0, copies: 0, blocks: new Set() });
+      e.sparks++; e.copies += copies; e.blocks.add(this.blk(p)); if (first >= 0) e.blocks.add(this.blk(first));
     }
     if (rec) rec.push(p, d, Math.min(off, cap), copies);
     return copies;
@@ -333,19 +371,50 @@ class World {
 
   epochStep() {
     const { o, n } = this;
-    const q = this.queue, maxF = Math.floor(o.sparksPerEpoch * (1 - o.randomFrac)) * 2;
+    const q = this.queue, S = o.lineage ? 3 : 2;
     let used = 0;
-    if (q.length > maxF) { // over budget: keep a random subset
-      for (let i = 0; i < maxF; i += 2) { const j = i + (((this.rnd(i, 3) * ((q.length - i) >> 1)) | 0) << 1); const a = q[j], b = q[j + 1]; q[j] = q[i]; q[j + 1] = q[i + 1]; q[i] = a; q[i + 1] = b; }
-      q.length = maxF;
+    if (o.lineage) this.linStats = new Map();
+    if (o.alloc === 'thin' || o.alloc === 'ratio' || o.alloc === 'local') {
+      // identity-keyed thinning: homologous sparks in coupled twins make the same keep/drop choice and carry the same key
+      const maxF = Math.floor(o.sparksPerEpoch * (1 - o.randomFrac));
+      let pKeep = o.alloc === 'thin' ? o.thinP : Math.min(1, maxF / (q.length / S || 1)), dens = null, gw = 0, gh = 0, winCap = 0;
+      if (o.alloc === 'local') {
+        const c = o.localCell; gw = this.w / c; gh = this.h / c; dens = new Float32Array(gw * gh);
+        const cellOf = pos => { const x = ((pos % this.w) + o.gridOff) % this.w, y = (((pos / this.w) | 0) + o.gridOff) % this.h; return ((y / c) | 0) * gw + ((x / c) | 0); };
+        for (let i = 0; i < q.length; i += S) dens[cellOf(q[i])]++;
+        winCap = o.localBoost * maxF * 9 / (gw * gh); // the same world-wide density, per 3×3 window (× boost)
+        this._cellOf = cellOf;
+      }
+      let wi = 0;
+      for (let i = 0; i < q.length; i += S) {
+        if (dens) { const g = this._cellOf(q[i]), gx = g % gw, gy = (g / gw) | 0; let cnt = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) cnt += dens[((gy + dy + gh) % gh) * gw + (gx + dx + gw) % gw]; pKeep = Math.min(1, winCap / (cnt || 1)); }
+        if (this.rnd(q[i] * 4 + q[i + 1] + 4096, 9) < pKeep) { for (let f = 0; f < S; f++) q[wi + f] = q[i + f]; wi += S; }
+      }
+      q.length = wi;
+      for (let i = 0; i < q.length; i += S, used++) this.spark(q[i], q[i + 1], this.trace, q[i] * 4 + q[i + 1] + 4096, S === 3 ? q[i + 2] : -1);
+      this.stats.followed = (this.stats.followed || 0) + used;
+      this.queue = this.next; this.next = [];
+      const imm = Math.round(o.sparksPerEpoch * o.randomFrac);
+      for (let k = 0; k < imm; k++) this.spark((this.rnd(k, 4) * n) | 0, (this.rnd(k, 5) * 4) | 0, this.trace, k);
+      this.stats.sparks += used + imm;
+    } else {
+      const maxF = Math.floor(o.sparksPerEpoch * (1 - o.randomFrac)) * S;
+      if (q.length > maxF) { // over budget: keep a random subset (rnd keyed by the stride-2 index, so the subset is the same at either stride)
+        for (let i = 0, e = 0; i < maxF; i += S, e += 2) {
+          const j = i + ((this.rnd(e, 3) * ((q.length - i) / S | 0)) | 0) * S;
+          for (let f = 0; f < S; f++) { const a = q[j + f]; q[j + f] = q[i + f]; q[i + f] = a; }
+        }
+        q.length = maxF;
+      }
+      for (let i = 0; i < q.length; i += S, used++) this.spark(q[i], q[i + 1], this.trace, used, S === 3 ? q[i + 2] : -1);
+      this.stats.followed = (this.stats.followed || 0) + used;
+      this.queue = this.next; this.next = [];
+      for (let k = used; k < o.sparksPerEpoch; k++) this.spark((this.rnd(k, 4) * n) | 0, (this.rnd(k, 5) * 4) | 0, this.trace, k);
+      this.stats.sparks += o.sparksPerEpoch;
     }
-    for (let i = 0; i < q.length; i += 2, used++) this.spark(q[i], q[i + 1], this.trace, used);
-    this.stats.followed = (this.stats.followed || 0) + used;
-    this.queue = this.next; this.next = [];
-    for (let k = used; k < o.sparksPerEpoch; k++) this.spark((this.rnd(k, 4) * n) | 0, (this.rnd(k, 5) * 4) | 0, this.trace, k);
     const rays = o.mutation * n; let m = Math.floor(rays) + (this.rnd(0, 6) < rays % 1 ? 1 : 0);
     while (m--) this.write((this.rnd(m, 7) * n) | 0, (this.rnd(m, 8) * 256) | 0);
-    this.stats.sparks += o.sparksPerEpoch; this.epoch++;
+    this.epoch++;
   }
 
   // Exact copy sharing the same per-event randomness. Diverges from the original only where bytes differ.
@@ -354,6 +423,7 @@ class World {
     Object.assign(F, this); F.o = { ...this.o }; F.cells = Uint8Array.from(this.cells); F.activity = new Uint16Array(this.n);
     F.walls = this.walls ? Uint8Array.from(this.walls) : null; F.queue = this.queue.slice(); F.next = this.next.slice();
     F.stats = { sparks: 0, steps: 0, copies: 0, writes: 0 }; F.species = new Map(); F.trace = null;
+    F.linStats = this.linStats ? new Map(this.linStats) : null; // replaced wholesale on the first epochStep
     return F;
   }
 
