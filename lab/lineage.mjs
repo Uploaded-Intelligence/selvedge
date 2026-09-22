@@ -3,6 +3,7 @@
 // inherit it), census the lineages alive in a warmed world, ask whether the biggest share territory, then CUT one
 // lineage's queued sparks in a fork and see whether the OTHER lineages feel it — against an uncut twin as the null.
 import { World } from '../sim/core.js';
+import { liveMap as sharedLiveMap, jaccard } from './livemap.mjs';
 
 const P = { blockCopy: 1, follow: 1, refire: 1, followOn: 1, followMin: 8, stepCap: 12, lineage: 1 };
 const WARM = 3000, T = 100, TOP = 5;
@@ -46,8 +47,7 @@ let bytes = 0, bytesC = 0; for (let i = 0; i < n; i++) { if (A.cells[i] !== B.ce
 console.log(`  bytes differing after ${T} epochs: A vs B ${bytes} (${(100 * bytes / n).toFixed(1)}%)   A vs C ${bytesC}`);
 
 // living-block Jaccard (lens from lab/decor.mjs: 4×4 blocks, ≥4 writes in 25 epochs and ≥10/16 cells in one opcode class)
-const liveMap = X => { X.clearActivity(); for (let e = 0; e < 25; e++) X.epochStep(); const m = new Uint8Array(n >> 4); const CLS = [0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 4, 4];
-  for (let by = 0; by < 64; by++) for (let bx = 0; bx < 64; bx++) { let wr = 0; const h = [0, 0, 0, 0, 0]; for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { const i = (by * 4 + y) * w + bx * 4 + x; wr += X.activity[i]; h[CLS[X.table[X.cells[i]]]]++; } m[by * 64 + bx] = wr >= 4 && Math.max(...h) >= 10 ? 1 : 0; } return m; };
-const jac = (a, b) => { let i = 0, u = 0; for (let k = 0; k < a.length; k++) { if (a[k] && b[k]) i++; if (a[k] || b[k]) u++; } return (i / u).toFixed(3); };
+const liveMap = X => { X.clearActivity(); for (let e = 0; e < 25; e++) X.epochStep(); return sharedLiveMap(X); };
+const jac = (a, b) => jaccard(a, b).toFixed(3);
 const ma = liveMap(A), mb = liveMap(B), mc = liveMap(C);
 console.log(`  living-block Jaccard at +${T}: cut(A,B) = ${jac(ma, mb)}   uncut twin(A,C) = ${jac(ma, mc)}`);

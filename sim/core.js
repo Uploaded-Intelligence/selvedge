@@ -24,6 +24,16 @@ export const DEFAULTS = {
   refire: 0,           // P(a productive spark also fires again in place next epoch) — metabolism: bodies get re-woven
   followOn: 0,         // 0 = any effective copies count (stamps included) · 1 = only copies that move to a new target
   randomFrac: 0.25,    // share of each epoch's spark budget reserved for random landings
+  alloc: 'cap',        // 'cap': fixed spark budget, over-budget queue → random subset, immigrants fill the rest (queue-LENGTH-dependent: a
+                       //        missing offspring anywhere re-keys distant execution — an allocator-mediated coupling, see E21).
+                       // 'thin': each queued spark kept independently w.p. thinP keyed by its OWN (pos,dir); immigrants fixed at
+                       //        randomFrac·sparksPerEpoch with stable keys. No global reallocation; total sparks/epoch may vary.
+                       // 'ratio': global cap kept, but each spark is kept independently w.p. cap/queueLength keyed by its OWN (pos,dir), and
+                       //        immigrants are fixed and stably keyed. The only world-wide channel left is one scalar (the ratio).
+                       // 'local': the SAME cap density, but enforced per overlapping 3×3-cell window of a coarse grid (cell = localCell²):
+                       //        keep w.p. min(1, windowCap / windowQueueCount). Carrying capacity becomes a neighbourhood property; no
+                       //        world-wide channel at all. gridOff shifts the grid (falsifier: compartments must not move with it).
+  thinP: 0.5, localCell: 16, gridOff: 0, localBoost: 1, // a window may hold up to boost× the even share (bodies concentrate execution); total stays bounded by windows×cap
   lineage: 0,          // 1 = tag every spark with a lineage id its children inherit (census in linStats); adds no rnd calls, so the trajectory is unchanged
 };
 
@@ -80,6 +90,7 @@ export class World {
   // Run one spark. Returns number of copy ops performed. lin < 0 = random landing (mints a lineage when tracking).
   spark(p, d, rec, k = 0, lin = -1) {
     const { cells, table, o } = this, cap = o.stepCap, L = o.lineage;
+    if (this.walls && this.walls[p]) { if (rec) rec.push(p, d, 0, 0); return 0; } // a wall is impermeable: a spark landing on it dies (heads would otherwise start on it and step off into either side)
     if (L && lin < 0) lin = this.epoch * o.sparksPerEpoch + k;
     let ip = p, h0 = p, h1 = p, copies = 0, off = 0, loopA = 0, loopB = 0, looped = false, steps = 0, first = -1, moved = 0, lastT = -1, lastU = -1;
     const walls = this.walls;
@@ -102,7 +113,7 @@ export class World {
         case OPEN:
           if (cells[h0] === 0) { // skip forward to matching ]
             let depth = 1, q = ip, k = 0;
-            while (depth && k++ < cap) { q = this.move(q, d); const c = table[cells[q]]; if (c === OPEN) depth++; else if (c === CLOSE) depth--; }
+            while (depth && k++ < cap) { q = this.move(q, d); if (walls && walls[q]) { depth = -1; break; } const c = table[cells[q]]; if (c === OPEN) depth++; else if (c === CLOSE) depth--; }
             if (depth) { steps = cap; continue; }
             off += k; ip = q;
           }
@@ -110,7 +121,7 @@ export class World {
         case CLOSE:
           if (cells[h0] !== 0) { // jump back to matching [
             let depth = 1, q = ip, k = 0;
-            while (depth && k++ < cap) { q = this.move(q, d + 2); const c = table[cells[q]]; if (c === CLOSE) depth++; else if (c === OPEN) depth--; }
+            while (depth && k++ < cap) { q = this.move(q, d + 2); if (walls && walls[q]) { depth = -1; break; } const c = table[cells[q]]; if (c === CLOSE) depth++; else if (c === OPEN) depth--; }
             if (depth) { steps = cap; continue; }
             loopA = off - k; loopB = off; looped = true; off -= k; ip = q;
           }
@@ -150,23 +161,50 @@ export class World {
 
   epochStep() {
     const { o, n } = this;
-    const q = this.queue, S = o.lineage ? 3 : 2, maxF = Math.floor(o.sparksPerEpoch * (1 - o.randomFrac)) * S;
+    const q = this.queue, S = o.lineage ? 3 : 2;
     let used = 0;
     if (o.lineage) this.linStats = new Map();
-    if (q.length > maxF) { // over budget: keep a random subset (rnd keyed by the stride-2 index, so the subset is the same at either stride)
-      for (let i = 0, e = 0; i < maxF; i += S, e += 2) {
-        const j = i + ((this.rnd(e, 3) * ((q.length - i) / S | 0)) | 0) * S;
-        for (let f = 0; f < S; f++) { const a = q[j + f]; q[j + f] = q[i + f]; q[i + f] = a; }
+    if (o.alloc === 'thin' || o.alloc === 'ratio' || o.alloc === 'local') {
+      // identity-keyed thinning: homologous sparks in coupled twins make the same keep/drop choice and carry the same key
+      const maxF = Math.floor(o.sparksPerEpoch * (1 - o.randomFrac));
+      let pKeep = o.alloc === 'thin' ? o.thinP : Math.min(1, maxF / (q.length / S || 1)), dens = null, gw = 0, gh = 0, winCap = 0;
+      if (o.alloc === 'local') {
+        const c = o.localCell; gw = this.w / c; gh = this.h / c; dens = new Float32Array(gw * gh);
+        const cellOf = pos => { const x = ((pos % this.w) + o.gridOff) % this.w, y = (((pos / this.w) | 0) + o.gridOff) % this.h; return ((y / c) | 0) * gw + ((x / c) | 0); };
+        for (let i = 0; i < q.length; i += S) dens[cellOf(q[i])]++;
+        winCap = o.localBoost * maxF * 9 / (gw * gh); // the same world-wide density, per 3×3 window (× boost)
+        this._cellOf = cellOf;
       }
-      q.length = maxF;
+      let wi = 0;
+      for (let i = 0; i < q.length; i += S) {
+        if (dens) { const g = this._cellOf(q[i]), gx = g % gw, gy = (g / gw) | 0; let cnt = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) cnt += dens[((gy + dy + gh) % gh) * gw + (gx + dx + gw) % gw]; pKeep = Math.min(1, winCap / (cnt || 1)); }
+        if (this.rnd(q[i] * 4 + q[i + 1] + 4096, 9) < pKeep) { for (let f = 0; f < S; f++) q[wi + f] = q[i + f]; wi += S; }
+      }
+      q.length = wi;
+      for (let i = 0; i < q.length; i += S, used++) this.spark(q[i], q[i + 1], this.trace, q[i] * 4 + q[i + 1] + 4096, S === 3 ? q[i + 2] : -1);
+      this.stats.followed = (this.stats.followed || 0) + used;
+      this.queue = this.next; this.next = [];
+      const imm = Math.round(o.sparksPerEpoch * o.randomFrac);
+      for (let k = 0; k < imm; k++) this.spark((this.rnd(k, 4) * n) | 0, (this.rnd(k, 5) * 4) | 0, this.trace, k);
+      this.stats.sparks += used + imm;
+    } else {
+      const maxF = Math.floor(o.sparksPerEpoch * (1 - o.randomFrac)) * S;
+      if (q.length > maxF) { // over budget: keep a random subset (rnd keyed by the stride-2 index, so the subset is the same at either stride)
+        for (let i = 0, e = 0; i < maxF; i += S, e += 2) {
+          const j = i + ((this.rnd(e, 3) * ((q.length - i) / S | 0)) | 0) * S;
+          for (let f = 0; f < S; f++) { const a = q[j + f]; q[j + f] = q[i + f]; q[i + f] = a; }
+        }
+        q.length = maxF;
+      }
+      for (let i = 0; i < q.length; i += S, used++) this.spark(q[i], q[i + 1], this.trace, used, S === 3 ? q[i + 2] : -1);
+      this.stats.followed = (this.stats.followed || 0) + used;
+      this.queue = this.next; this.next = [];
+      for (let k = used; k < o.sparksPerEpoch; k++) this.spark((this.rnd(k, 4) * n) | 0, (this.rnd(k, 5) * 4) | 0, this.trace, k);
+      this.stats.sparks += o.sparksPerEpoch;
     }
-    for (let i = 0; i < q.length; i += S, used++) this.spark(q[i], q[i + 1], this.trace, used, S === 3 ? q[i + 2] : -1);
-    this.stats.followed = (this.stats.followed || 0) + used;
-    this.queue = this.next; this.next = [];
-    for (let k = used; k < o.sparksPerEpoch; k++) this.spark((this.rnd(k, 4) * n) | 0, (this.rnd(k, 5) * 4) | 0, this.trace, k);
     const rays = o.mutation * n; let m = Math.floor(rays) + (this.rnd(0, 6) < rays % 1 ? 1 : 0);
     while (m--) this.write((this.rnd(m, 7) * n) | 0, (this.rnd(m, 8) * 256) | 0);
-    this.stats.sparks += o.sparksPerEpoch; this.epoch++;
+    this.epoch++;
   }
 
   // Exact copy sharing the same per-event randomness. Diverges from the original only where bytes differ.

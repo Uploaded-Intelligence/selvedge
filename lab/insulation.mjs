@@ -2,6 +2,7 @@
 // disagree on living-ness (persistently, ≥2 consecutive checks). Reports arrival-time vs distance from the wound,
 // and renders a PNG: arrival time (dark=early, bright=late/never) over the living map.
 import { World } from '../sim/core.js';
+import { liveMap, jaccard } from './livemap.mjs';
 import { writePNG } from './png.mjs';
 const args = Object.fromEntries(process.argv.slice(2).map(a => { const [k, v] = a.split('='); return [k, isNaN(+v) ? v : +v]; }));
 const { horizon = 600, every = 20, out = 'insulation.png', ...opts } = args;
@@ -9,8 +10,6 @@ const P = { blockCopy: 1, follow: 1, refire: 1, followOn: 1, followMin: 8, stepC
 const A = new World(P); for (let e = 0; e < 3000; e++) A.epochStep();
 const w = A.w, n = A.n, bw = w >> 2, B = A.fork(), cx = 128, cy = 128;
 for (let i = 0; i < 13; i++) B.cells[(cy + (i / 5 | 0)) * w + cx + i % 5] = (i * 37) & 255;
-const CLS = [0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 4, 4];
-const liveMap = X => { const m = new Uint8Array(bw * bw); for (let by = 0; by < bw; by++) for (let bx = 0; bx < bw; bx++) { let wr = 0; const h = [0, 0, 0, 0, 0]; for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { const i = (by * 4 + y) * w + bx * 4 + x; wr += X.activity[i]; h[CLS[X.table[X.cells[i]]]]++; } m[by * bw + bx] = wr >= 4 && Math.max(...h) >= 10 ? 1 : 0; } X.clearActivity(); return m; };
 const arrival = new Int16Array(bw * bw).fill(-1), streak = new Uint8Array(bw * bw); let lastA = null;
 for (let e = 1; e <= horizon; e++) {
   A.epochStep(); B.epochStep(); if (e % every) continue;
