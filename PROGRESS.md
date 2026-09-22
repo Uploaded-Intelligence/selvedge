@@ -1,6 +1,10 @@
 # PROGRESS — Selvedge
 
-## Current state (2026-09-22, late)
+## Current state (2026-09-22, 02:00)
+- **E21 (GPT-6-advised):** positive control (sealed-wall quadrants) exposed three leaks — two in the substrate's wall handling (fixed), one fundamental: **any global allocator is a world-wide causal channel** in a chaotic medium. New `alloc` modes; `local` (per-window carrying capacity, boost 3) passes the wall control byte-for-byte. With the clean instrument: reach 12 chaotic front; reach 10 → 7/12 wounds contained <1% for 1,200 epochs (4 erased to zero); reach 11 → latent-then-breakout. E18's "no byte healing" retracted. Group-scoped budget: removes the artefact, slows fronts, creates no permanent compartments.
+- Default physics unchanged (`alloc: 'cap'`), so the published page is unaffected.
+
+## Earlier (2026-09-22, late)
 - **Turn 2 (E16–E19):** meta-reflection recorded as hypothesis; interventional instrument built (coupled forks with per-event randomness, `World.fork()`, `lab/wound.mjs` + `decor/insulation/compartments/pulse`); Derrida sweep over reach. Three research briefs in `research/`. Repo now PUBLIC.
 - **Key findings:** bytes chaotic (τ≈50), body-trajectories robust (τ≈300); one causal compartment + form-fixed-point islands; life and chaos switch on together at reach 9; local repair peaks at reach 10–11 (disc 0.69 vs ambient 0.72). Second-order selves: not found, and the first test was invalid (E19 amendments).
 - **Physics change:** `quiescent` dial exists (E18: quieter, not teleodynamic). Default physics unchanged.
@@ -21,7 +25,10 @@
 
 ## Next steps (in order of interest) — revised after E19
 0. ~~Lineage tracker~~ DONE (E20). Finding: lineages ≤400 epochs old, bodies = piles of lineages in one place, coupling is GLOBAL budget coupling — which is why E17 saw one causal compartment.
-0a. **Group-scoped spark budget** (per region / per lineage-cluster) → rerun `lab/compartments.mjs`; do causal compartments appear? This is the first dial motivated by Selvedge's own data.
+0a. ~~Group-scoped spark budget~~ DONE as `alloc=local` (E21): needed for the instrument, not sufficient for compartments.
+0a'. **Basins of basins.** At reach 10/local, contained wounds define bounded basins (~100–450 cells). Map them (many wounds → co-containment clustering), then test whether two basins' fates couple (wound A inside basin 1, measure basin 2) — the first askable second-order question. Also: why do some wounds heal to zero and others front? (site property? lineage age?)
+0a''. Consider `alloc=local` + reach 10 as a new default physics for the page, with the multiverse showing cap vs local.
+0a-old. Group-scoped spark budget (per region / per lineage-cluster) → rerun `lab/compartments.mjs`; do causal compartments appear? This is the first dial motivated by Selvedge's own data.
 0-old. Lineage tracker (the object the twins actually shared is the spark lineage, not bytes or form): tag sparks with lineage ids inherited via `next.push`; census lineages (count/size/lifetime/write-sets); cut one lineage and see who dies. Individuate before aggregating. Then, and only then, group-scoped dials (budget per lineage, bottleneck).
 0b. Fix page dial text (life begins at reach 9) and rebuild/republish.
 
