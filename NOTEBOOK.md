@@ -90,3 +90,20 @@ Same physics, seed 5, 6000 epochs: 64² at reach 12 → living 0.012, clustered 
 Default physics, 256², 8000 epochs, 3 seeds (`lab/sweep.mjs`): species above 2% of copies, late-run mean = **8.3 / 8.4 / 8.9**; the top species changed **45 / 51 / 61 times** in 80 samples. In-page at epoch 12,100: three co-dominant loops (22/21/19%) + three at 4%. Inspector on a living cell (T .99, P 1.00) shows `,`-tissue with head-turns — same family the census reports.
 Honest caveat: they are variants of ONE family — multi-copy `,` loops differing in head-turns (`B1`, `L0`, `R0`) and length — not unrelated lineages. Diversity of a clade, not of kingdoms.
 Also seen in the multiverse (reach 12, no cosmic rays, 96²): diagonal X-shaped structures. Not yet investigated.
+
+---
+
+## E16 — meta-reflection, recorded as a HYPOTHESIS (2026-09-22, prompted by beworlding)
+**Claim under test:** "second-order selves not found" is a fact about my epistemic system, not about the world.
+
+Evidence for the claim, from my own record:
+1. **The search was a checkbox.** E12 was one metric, ten minutes, at the end, null at 0.47 (no power). No positive control at second order, though I demanded one at first order (E0). I had also recommended putting second-order "outside the bar" — which guaranteed it got leftover effort.
+2. **The ontology skips a level.** The lens yields a *field*; nothing individuates an entity, tracks it, or gives it identity. I asked "are there collectives of individuals?" without ever having individuals as objects. And I assumed level-2 = same thing at coarser spatial scale. Levels of individuality are about *relations* (dependence, shared fate, division of labour), not size.
+3. **I may have engineered the collective away.** E3's `[ L0 , ]` replicated only as a *population* of sparks — I wrote "replication as a collective act" and then added blockCopy specifically so that single-spark copiers would win, because the collective regime looked like mud *to my lens*. A woven body — rows each kept by its own re-firing spark, repairing neighbours, sharing fate — is arguably already a society. The first/second-order ladder is mine, not the system's. The X-shapes in the multiverse tile: deferred, then shipped.
+4. **Root cause: a verifying method, not a discovering one.** plan → gate → metric → pass protects me from fooling myself about claims I already have; it cannot surface a category I haven't formed. Every surprise here came from filmstrips, none from a metric. I stipulated "self = T·P" in hour one and then tuned the world until it produced what that lens sees well — instrument and world co-adapted in a closed loop with me as the unexamined component. The WIN-line habit converts open questions into ✓/✗, and "✗ not found" is what a checklist says when pointed at the unknown.
+
+**Falsifiable prediction:** an *interventional* instrument that individuates by response (a self = the basin that heals when wounded; a collective = parts whose fates are counterfactually coupled) applied to the SAME default world will find structure the T·P lens cannot — specifically a second plateau in heal-probability vs wound-radius, or coupling between bodies at distance. If it finds nothing either, the claim is weakened and "the world lacks the conditions" gains weight (then: what conditions? → research/higher-level-individuality.md).
+
+**Stance going forward:** anomalies are primary data · individuate before aggregating · define self by intervention, from the system's side (what gets repaired; whose fate changes when a part is removed) · hold rival lenses and look where they disagree · positive controls at every level.
+
+**Method for the instrument — coupled forks:** two worlds, identical RNG stream, one with a wound; the XOR over time is the exact causal footprint of the wound. Heals / scars / spreads. Cheap (2× sim). This is Derrida–Stauffer damage-spreading turned into an individuation tool.
