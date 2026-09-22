@@ -30,7 +30,7 @@ export class World {
     const o = this.o = { ...DEFAULTS, ...opts };
     if (!o.sparksPerEpoch) o.sparksPerEpoch = (o.w * o.h) >> 4;
     this.w = o.w; this.h = o.h; this.n = o.w * o.h;
-    this.s = (o.seed * 2654435761) >>> 0 || 1;
+    this.s = this.s0 = (o.seed * 2654435761) >>> 0 || 1;
     this.cells = new Uint8Array(this.n);
     this.activity = new Uint16Array(this.n);   // writes since last clearActivity()
     this.table = new Uint8Array(256);          // byte → opcode (0 = inert data). byte 0 is never code.
@@ -45,6 +45,15 @@ export class World {
   }
 
   rand() { let s = this.s; s ^= s << 13; s ^= s >>> 17; s ^= s << 5; this.s = s >>>= 0; return s / 4294967296; }
+
+  // Per-event randomness keyed by (epoch, event, salt) — not a shared stream. Two worlds with the same seed
+  // then make identical random choices at identical events, so they diverge ONLY where their bytes differ.
+  // This is what makes coupled forks (lab/wound.mjs) an exact causal footprint rather than RNG drift.
+  rnd(k, salt) {
+    let x = (this.s0 ^ Math.imul(this.epoch + 1, 0x9E3779B1) ^ Math.imul(k + 1, 0x85EBCA77) ^ Math.imul(salt + 1, 0xC2B2AE3D)) >>> 0;
+    x = Math.imul(x ^ (x >>> 16), 0x7FEB352D); x = Math.imul(x ^ (x >>> 15), 0x846CA68B); x ^= x >>> 16;
+    return (x >>> 0) / 4294967296;
+  }
 
   byteFor(op, k = 0) { return 1 + (op - 1) * this.o.density + k; }
 
@@ -61,7 +70,7 @@ export class World {
   write(i, v) { this.cells[i] = v; if (this.activity[i] < 65535) this.activity[i]++; this.stats.writes++; }
 
   // Run one spark. Returns number of copy ops performed.
-  spark(p, d, rec) {
+  spark(p, d, rec, k = 0) {
     const { cells, table, o } = this, cap = o.stepCap;
     let ip = p, h0 = p, h1 = p, copies = 0, off = 0, loopA = 0, loopB = 0, looped = false, steps = 0, first = -1, moved = 0, lastT = -1, lastU = -1;
     const walls = this.walls;
@@ -105,8 +114,8 @@ export class World {
     this.stats.moved = (this.stats.moved || 0) + moved;
     if (moved >= o.speciesMinCopies && looped) this.#census(p, d, loopA, loopB, copies);
     if (o.follow && (o.followOn ? moved : copies) >= o.followMin) {
-      if (this.rand() < o.follow) this.next.push(first, d);
-      if (o.refire && this.rand() < o.refire) this.next.push(p, d);
+      if (this.rnd(k, 1) < o.follow) this.next.push(first, d);
+      if (o.refire && this.rnd(k, 2) < o.refire) this.next.push(p, d);
     }
     if (rec) rec.push(p, d, Math.min(off, cap), copies);
     return copies;
@@ -131,16 +140,25 @@ export class World {
     const q = this.queue, maxF = Math.floor(o.sparksPerEpoch * (1 - o.randomFrac)) * 2;
     let used = 0;
     if (q.length > maxF) { // over budget: keep a random subset
-      for (let i = 0; i < maxF; i += 2) { const j = i + (((this.rand() * ((q.length - i) >> 1)) | 0) << 1); const a = q[j], b = q[j + 1]; q[j] = q[i]; q[j + 1] = q[i + 1]; q[i] = a; q[i + 1] = b; }
+      for (let i = 0; i < maxF; i += 2) { const j = i + (((this.rnd(i, 3) * ((q.length - i) >> 1)) | 0) << 1); const a = q[j], b = q[j + 1]; q[j] = q[i]; q[j + 1] = q[i + 1]; q[i] = a; q[i + 1] = b; }
       q.length = maxF;
     }
-    for (let i = 0; i < q.length; i += 2, used++) this.spark(q[i], q[i + 1], this.trace);
+    for (let i = 0; i < q.length; i += 2, used++) this.spark(q[i], q[i + 1], this.trace, used);
     this.stats.followed = (this.stats.followed || 0) + used;
     this.queue = this.next; this.next = [];
-    for (let k = used; k < o.sparksPerEpoch; k++) this.spark((this.rand() * n) | 0, (this.rand() * 4) | 0, this.trace);
-    const rays = o.mutation * n; let m = Math.floor(rays) + (this.rand() < rays % 1 ? 1 : 0);
-    while (m--) this.write((this.rand() * n) | 0, (this.rand() * 256) | 0);
+    for (let k = used; k < o.sparksPerEpoch; k++) this.spark((this.rnd(k, 4) * n) | 0, (this.rnd(k, 5) * 4) | 0, this.trace, k);
+    const rays = o.mutation * n; let m = Math.floor(rays) + (this.rnd(0, 6) < rays % 1 ? 1 : 0);
+    while (m--) this.write((this.rnd(m, 7) * n) | 0, (this.rnd(m, 8) * 256) | 0);
     this.stats.sparks += o.sparksPerEpoch; this.epoch++;
+  }
+
+  // Exact copy sharing the same per-event randomness. Diverges from the original only where bytes differ.
+  fork() {
+    const F = new World({ ...this.o, w: 2, h: 2 }); // cheap shell, then overwrite state
+    Object.assign(F, this); F.o = { ...this.o }; F.cells = Uint8Array.from(this.cells); F.activity = new Uint16Array(this.n);
+    F.walls = this.walls ? Uint8Array.from(this.walls) : null; F.queue = this.queue.slice(); F.next = this.next.slice();
+    F.stats = { sparks: 0, steps: 0, copies: 0, writes: 0 }; F.species = new Map(); F.trace = null;
+    return F;
   }
 
   clearActivity() { this.activity.fill(0); }
