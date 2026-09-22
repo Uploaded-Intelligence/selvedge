@@ -1,6 +1,11 @@
 # PROGRESS — Selvedge
 
-## Current state (2026-09-22)
+## Current state (2026-09-22, late)
+- **Turn 2 (E16–E19):** meta-reflection recorded as hypothesis; interventional instrument built (coupled forks with per-event randomness, `World.fork()`, `lab/wound.mjs` + `decor/insulation/compartments/pulse`); Derrida sweep over reach. Three research briefs in `research/`. Repo now PUBLIC.
+- **Key findings:** bytes chaotic (τ≈50), body-trajectories robust (τ≈300); one causal compartment + form-fixed-point islands; life and chaos switch on together at reach 9; local repair peaks at reach 10–11 (disc 0.69 vs ambient 0.72). Second-order selves: not found, and the first test was invalid (E19 amendments).
+- **Physics change:** `quiescent` dial exists (E18: quieter, not teleodynamic). Default physics unchanged.
+
+## Earlier state
 - Repo (private): https://github.com/Uploaded-Intelligence/selvedge
 - v1 published, private: https://claude.ai/artifact/BeaD7i2JDvp3HWMzBVD6pi — rebuild with `node page/build.mjs` (inlines `sim/*.js` into `page/template.html` → `index.html`), then republish `index.html`.
 - Working physics: `blockCopy=1 follow=1 refire=1 followOn=1 followMin=8`, default reach (`stepCap`) 12, mutation 1/4096, 256².
@@ -14,7 +19,11 @@
 - **Reach is THE dial.** Eight scheduling dials gave mud/monoculture; turning stepCap DOWN gave territories (E9). Default 12 chosen from 8k-epoch balance, not the prettiest moment (E13).
 - **Keep arithmetic.** It's the mutation operator; off → 7-symbol collapse (E8).
 
-## Next steps (in order of interest)
+## Next steps (in order of interest) — revised after E19
+0. **Lineage tracker** (the object the twins actually shared is the spark lineage, not bytes or form): tag sparks with lineage ids inherited via `next.push`; census lineages (count/size/lifetime/write-sets); cut one lineage and see who dies. Individuate before aggregating. Then, and only then, group-scoped dials (budget per lineage, bottleneck).
+0b. Fix page dial text (life begins at reach 9) and rebuild/republish.
+
+## Older next steps
 1. Sharper second-order test: per-block *species identity* (needs spark→species location plumbing) instead of lens state; null at ~0.47 is too loose.
 2. Living-semantics mode: opcode table stored in the world.
 3. Sonification: copy-loop period → pitch; does the soup audibly "start to sing" at ignition?

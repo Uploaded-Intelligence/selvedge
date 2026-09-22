@@ -22,14 +22,20 @@ if (centres.length < trials) { console.log(`only ${centres.length} ${where} cell
 let s = 99; const pick = () => { s = (s * 1103515245 + 12345) >>> 0; return centres[s % centres.length]; };
 
 function wound(F, c, R) {
-  const cx = c % w, cy = (c / w) | 0; let k = 0;
+  const cx = c % w, cy = (c / w) | 0; let k = 0; discCells = [];
   for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
     if (dx * dx + dy * dy > R * R) continue;
     const i = ((cy + dy + h) % h) * w + (cx + dx + w) % w;
-    F.cells[i] = kind === 'zero' ? 0 : ((F.rnd(i, 99) * 256) | 0); k++;
+    F.cells[i] = kind === 'zero' ? 0 : ((F.rnd(i, 99) * 256) | 0); k++; discCells.push(i);
   }
+  ringCells = []; for (let dy = -R - 5; dy <= R + 5; dy++) for (let dx = -R - 5; dx <= R + 5; dx++) { const d2 = dx * dx + dy * dy; if (d2 > (R + 2) * (R + 2) && d2 <= (R + 5) * (R + 5)) ringCells.push(((cy + dy + h) % h) * w + (cx + dx + w) % w); }
   return k;
 }
+let discCells = [];
+// local repair: share of the ORIGINAL wound disc where the fork again matches its twin (byte / class)
+let ringCells = [];
+const ident = (A, B, cells) => { let b = 0; for (const i of cells) if (A.cells[i] === B.cells[i]) b++; return b / cells.length; };
+const repair = (A, B) => [ident(A, B, discCells), ident(A, B, ringCells)]; // disc vs never-wounded ring (radius R+2..R+5) = ambient
 // Ladder of equivalences: at which level of description does the wound heal?
 //   byte  : identical bytes            class : same opcode class (data / head-move / arith / copy / bracket)
 //   tissue: same lens verdict (inert/living/front) by 4×4 block, using write activity since the wound
@@ -41,7 +47,7 @@ const tissue = (X) => { // per 4×4 block: 0 inert (few writes) · 1 living (wri
   for (let by = 0; by < h >> 2; by++) for (let bx = 0; bx < bw; bx++) {
     let writes = 0; const hist = [0, 0, 0, 0, 0];
     for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { const i = (by * 4 + y) * w + bx * 4 + x; writes += X.activity[i]; hist[CLS[X.table[X.cells[i]]]]++; }
-    const dom = Math.max(...hist) / 16;
+    const dom = Math.max(hist[1], hist[2], hist[3], hist[4]) / 16; // data (class 0) never counts as coherent tissue
     out[by * bw + bx] = writes < 4 ? 0 : dom >= 0.6 ? 1 : 2;
   }
   return out;
@@ -51,11 +57,12 @@ const diffTissue = (A, B) => { const a = tissue(A), b = tissue(B); let d = 0; fo
 console.log(`where=${where} kind=${kind} warm=${warm} horizon=${horizon} trials=${trials}   (footprint as multiple of wound area)`);
 console.log('R   area  tissue: heal/scar/spread  class-heal  byte-heal |  median footprint:  byte   class  tissue | byte trajectory');
 for (const R of String(radii).split(',').map(Number)) {
-  const finals = [], finalsC = [], finalsT = [], traj = Array.from({ length: 7 }, () => []);
+  const finals = [], finalsC = [], finalsT = [], traj = Array.from({ length: 7 }, () => []), REP_T = [1, 2, 4, 8, 16, 32, 64], repB = REP_T.map(() => []), repC = REP_T.map(() => []);
   for (let t = 0; t < trials; t++) {
     const A = W.fork(), B = W.fork(), c = pick(), area = wound(B, c, R);
     for (let e = 1; e <= horizon; e++) {
       A.epochStep(); B.epochStep();
+      const ri = REP_T.indexOf(e); if (ri >= 0) { const [rb, rc] = repair(A, B); repB[ri].push(rb); repC[ri].push(rc); }
       if (e % (horizon / 6) === 0) traj[e / (horizon / 6)].push(diffByte(A, B) / area);
     }
     finals.push(diffByte(A, B) / area); finalsC.push(diffClass(A, B) / area); finalsT.push(diffTissue(A, B) / area);
@@ -67,4 +74,6 @@ for (const R of String(radii).split(',').map(Number)) {
   const healC = finalsC.filter(f => f < 0.5).length / trials, healB = finals.filter(f => f < 0.5).length / trials;
   console.log(String(R).padEnd(3), String(area).padEnd(6), (100 * heal).toFixed(0).padStart(6) + '%' + (100 * scar).toFixed(0).padStart(4) + '%' + (100 * spread).toFixed(0).padStart(4) + '%', (100 * healC).toFixed(0).padStart(9) + '%', (100 * healB).toFixed(0).padStart(9) + '%',
     '  ', med(finals).toFixed(1).padStart(8), med(finalsC).toFixed(1).padStart(8), med(finalsT).toFixed(1).padStart(8), '  ', traj.slice(1).map(a => med(a).toFixed(0)).join('→'));
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  console.log('      byte identity with twin at t=' + REP_T.join('/') + ':   wound disc ' + repB.map(a => mean(a).toFixed(2)).join(' ') + '   | ambient ring ' + repC.map(a => mean(a).toFixed(2)).join(' '));
 }

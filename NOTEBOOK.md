@@ -129,3 +129,19 @@ Instrument: `World.fork()` + per-event hashed randomness (`rnd(k,salt)`; replace
 - **Byte-level healing is ≈0% in every regime, wound type and tissue class.** Nothing in this substrate restores what was there. Form-level robustness (E17) is re-weaving from neighbours, not repair of the damaged part; the damaged bytes are copied onward before they are overwritten.
 - Deacon's condition #3 (damage *recruits* the process that restores) is absent: execution is recruited by productive copying anywhere, not by damage specifically; a wound does not summon sparks. Quiescence removed reinforcement but added no reactivation-on-damage.
 **Verdict:** morphodynamic, still. The substrate is at the chaotic side of Derrida's transition at every reach tested; a teleodynamic self would need a mechanism that makes damage *locally* attract execution and makes repair *terminate* it — neither exists in this instruction set.
+
+## E19 — the heal metric was structurally blind; fixed. Then a Derrida sweep over reach.
+Advisor #4 caught that `heal%` = whole-world footprint < 0.5×area can never register *local* repair in a chaotic world, so E18's "byte-heal ≈0 everywhere" and E16's "no second plateau" were not validly tested. **Amendments:** E18 → "local repair not yet measured"; E16 → "plateau test not validly run". Also fixed: tissue classifier no longer counts data-class coherence as tissue; fork sensor re-run on the rewritten `fork()` (0 cells differ after 300 epochs, census live).
+New measure: byte identity with twin inside the ORIGINAL wound disc at t=1…64, against a never-wounded ambient ring (R+2..R+5). Repair = disc rises to meet ring.
+
+| reach | alive? | wound footprint @240 | disc→ring identity @t=64 | reading |
+|---|---|---|---|---|
+| 8 | **no** — copies/spark ≤0.7 for 6000 epochs, 3 seeds | 1.0 (never spreads) | 0.14 vs 1.00 | frozen and dead; the lens's "living .14–.28 at reach 8" (E9) was a false positive |
+| 9 | yes, ignites late (1.4k–3.2k) | 1,357× — sits still 40 epochs then takes off | 0.52 vs 0.78 | chaotic, slow onset, substantial local repair |
+| 10 | yes | 1,088× | 0.56 vs 0.66 | chaotic; disc nearly at ambient |
+| 11 | yes | 2,361× | **0.69 vs 0.72** | locally healed, globally chaotic |
+| 12 | yes | 7,755× | 0.44 vs 0.66 | chaotic |
+| 16 | yes | 12,022× | 0.19 vs 0.31 | very chaotic |
+
+**Findings.** (1) Life and chaos switch on together at reach 9: there is no ordered-alive regime in this instruction set; the habitable band lies entirely on the chaotic side of the Derrida transition. (2) Local repair is real and peaks near the edge (reach 10–11): a wounded body re-weaves itself to ambient identity within ~64 epochs while the wound's *consequences* still reshape the whole world — healed locally, chaotic globally. That is the precise interventional content of the Theseus lens's "form persists while matter turns over". (3) Repair falls off with reach — more reach, less repair, more chaos.
+Corrections to earlier claims: "byte-level healing ≈0" (E18) is false at reach 9–11; the page's dial text ("near 10–14 living islands…") should say life begins at 9.
