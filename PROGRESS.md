@@ -20,7 +20,9 @@
 - **Keep arithmetic.** It's the mutation operator; off → 7-symbol collapse (E8).
 
 ## Next steps (in order of interest) — revised after E19
-0. **Lineage tracker** (the object the twins actually shared is the spark lineage, not bytes or form): tag sparks with lineage ids inherited via `next.push`; census lineages (count/size/lifetime/write-sets); cut one lineage and see who dies. Individuate before aggregating. Then, and only then, group-scoped dials (budget per lineage, bottleneck).
+0. ~~Lineage tracker~~ DONE (E20). Finding: lineages ≤400 epochs old, bodies = piles of lineages in one place, coupling is GLOBAL budget coupling — which is why E17 saw one causal compartment.
+0a. **Group-scoped spark budget** (per region / per lineage-cluster) → rerun `lab/compartments.mjs`; do causal compartments appear? This is the first dial motivated by Selvedge's own data.
+0-old. Lineage tracker (the object the twins actually shared is the spark lineage, not bytes or form): tag sparks with lineage ids inherited via `next.push`; census lineages (count/size/lifetime/write-sets); cut one lineage and see who dies. Individuate before aggregating. Then, and only then, group-scoped dials (budget per lineage, bottleneck).
 0b. Fix page dial text (life begins at reach 9) and rebuild/republish.
 
 ## Older next steps

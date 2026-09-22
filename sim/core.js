@@ -24,6 +24,7 @@ export const DEFAULTS = {
   refire: 0,           // P(a productive spark also fires again in place next epoch) — metabolism: bodies get re-woven
   followOn: 0,         // 0 = any effective copies count (stamps included) · 1 = only copies that move to a new target
   randomFrac: 0.25,    // share of each epoch's spark budget reserved for random landings
+  lineage: 0,          // 1 = tag every spark with a lineage id its children inherit (census in linStats); adds no rnd calls, so the trajectory is unchanged
 };
 
 export class World {
@@ -40,7 +41,8 @@ export class World {
     this.epoch = 0;
     this.stats = { sparks: 0, steps: 0, copies: 0, writes: 0 };
     this.species = new Map();                  // hash → {count, code}
-    this.queue = []; this.next = [];           // follow-sparks: [pos, dir, ...]
+    this.queue = []; this.next = [];           // follow-sparks: [pos, dir, ...] — stride 3 [pos, dir, lin, ...] when o.lineage
+    this.linStats = o.lineage ? new Map() : null; // this epoch's lineage census: lin → {sparks, copies, blocks:Set<8×8 block>}; linBorn(lin) gives its birth epoch
     this.trace = null;                         // set to [] to record sparks for rendering
     for (let i = 0; i < this.n; i++) this.cells[i] = this.rand() * 256;
   }
@@ -70,9 +72,15 @@ export class World {
 
   write(i, v) { this.cells[i] = v; if (this.activity[i] < 65535) this.activity[i]++; this.stats.writes++; }
 
-  // Run one spark. Returns number of copy ops performed.
-  spark(p, d, rec, k = 0) {
-    const { cells, table, o } = this, cap = o.stepCap;
+  // Lineage ids encode their birth: a random landing at slot k of epoch e is lin = e·sparksPerEpoch + k (unique — only
+  // random landings mint; followed sparks inherit). So age needs no table and fork() needs no extra state.
+  linBorn(lin) { return Math.floor(lin / this.o.sparksPerEpoch); }
+  blk(i) { return ((i / this.w) >> 3) * (this.w >> 3) + ((i % this.w) >> 3); }
+
+  // Run one spark. Returns number of copy ops performed. lin < 0 = random landing (mints a lineage when tracking).
+  spark(p, d, rec, k = 0, lin = -1) {
+    const { cells, table, o } = this, cap = o.stepCap, L = o.lineage;
+    if (L && lin < 0) lin = this.epoch * o.sparksPerEpoch + k;
     let ip = p, h0 = p, h1 = p, copies = 0, off = 0, loopA = 0, loopB = 0, looped = false, steps = 0, first = -1, moved = 0, lastT = -1, lastU = -1;
     const walls = this.walls;
     for (; steps < cap; steps++) {
@@ -115,8 +123,12 @@ export class World {
     this.stats.moved = (this.stats.moved || 0) + moved;
     if (moved >= o.speciesMinCopies && looped) this.#census(p, d, loopA, loopB, copies);
     if (o.follow && (o.followOn ? moved : copies) >= o.followMin) {
-      if (this.rnd(k, 1) < o.follow) this.next.push(first, d);
-      if (o.refire && this.rnd(k, 2) < o.refire) this.next.push(p, d);
+      if (this.rnd(k, 1) < o.follow) { this.next.push(first, d); if (L) this.next.push(lin); }
+      if (o.refire && this.rnd(k, 2) < o.refire) { this.next.push(p, d); if (L) this.next.push(lin); }
+    }
+    if (L) { // census: footprint = landing block + first-write block (a ray is ≤ stepCap cells, so this brackets the write-set)
+      let e = this.linStats.get(lin); if (!e) this.linStats.set(lin, e = { sparks: 0, copies: 0, blocks: new Set() });
+      e.sparks++; e.copies += copies; e.blocks.add(this.blk(p)); if (first >= 0) e.blocks.add(this.blk(first));
     }
     if (rec) rec.push(p, d, Math.min(off, cap), copies);
     return copies;
@@ -138,13 +150,17 @@ export class World {
 
   epochStep() {
     const { o, n } = this;
-    const q = this.queue, maxF = Math.floor(o.sparksPerEpoch * (1 - o.randomFrac)) * 2;
+    const q = this.queue, S = o.lineage ? 3 : 2, maxF = Math.floor(o.sparksPerEpoch * (1 - o.randomFrac)) * S;
     let used = 0;
-    if (q.length > maxF) { // over budget: keep a random subset
-      for (let i = 0; i < maxF; i += 2) { const j = i + (((this.rnd(i, 3) * ((q.length - i) >> 1)) | 0) << 1); const a = q[j], b = q[j + 1]; q[j] = q[i]; q[j + 1] = q[i + 1]; q[i] = a; q[i + 1] = b; }
+    if (o.lineage) this.linStats = new Map();
+    if (q.length > maxF) { // over budget: keep a random subset (rnd keyed by the stride-2 index, so the subset is the same at either stride)
+      for (let i = 0, e = 0; i < maxF; i += S, e += 2) {
+        const j = i + ((this.rnd(e, 3) * ((q.length - i) / S | 0)) | 0) * S;
+        for (let f = 0; f < S; f++) { const a = q[j + f]; q[j + f] = q[i + f]; q[i + f] = a; }
+      }
       q.length = maxF;
     }
-    for (let i = 0; i < q.length; i += 2, used++) this.spark(q[i], q[i + 1], this.trace, used);
+    for (let i = 0; i < q.length; i += S, used++) this.spark(q[i], q[i + 1], this.trace, used, S === 3 ? q[i + 2] : -1);
     this.stats.followed = (this.stats.followed || 0) + used;
     this.queue = this.next; this.next = [];
     for (let k = used; k < o.sparksPerEpoch; k++) this.spark((this.rnd(k, 4) * n) | 0, (this.rnd(k, 5) * 4) | 0, this.trace, k);
@@ -159,6 +175,7 @@ export class World {
     Object.assign(F, this); F.o = { ...this.o }; F.cells = Uint8Array.from(this.cells); F.activity = new Uint16Array(this.n);
     F.walls = this.walls ? Uint8Array.from(this.walls) : null; F.queue = this.queue.slice(); F.next = this.next.slice();
     F.stats = { sparks: 0, steps: 0, copies: 0, writes: 0 }; F.species = new Map(); F.trace = null;
+    F.linStats = this.linStats ? new Map(this.linStats) : null; // replaced wholesale on the first epochStep
     return F;
   }
 
